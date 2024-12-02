@@ -1,0 +1,76 @@
+#! /bin/bash -l
+
+module load bwa/0.7.17
+module load picard/2.25.5
+module load samtools/1.20
+module load bioinfo-tools
+module load FastQC/0.11.9 
+PICARD_HOME=/pdc/software/eb/software/picard/2.25.5
+
+
+# Define the reference and create directories for the results
+reference=/cfs/klemming/projects/snic/snic2022-23-124/Santiago/RefGenome/GCA_004329235.1_PodMur_1.0_genomic.fna
+mkdir fastqcTrim
+mkdir mapping
+
+# Run fastqc on trimmed files   
+fastqc -o fastqcTrim/ -f fastq -t 16 trimReads/*
+
+# Mapping using all trimmed data 
+bwa mem -M -t 16 ${reference} \
+trimReads/DummySample_trim_1.fq.gz trimReads/DummySample_trim_2.fq.gz > mapping/DummySample_pair.sam
+
+bwa mem -M -t 16 ${reference} \
+trimReads/DummySample_trim_unpair1.fq.gz > mapping/DummySample_unpair_1.sam
+
+bwa mem -M -t 16 ${reference} \
+trimReads/DummySample_trim_unpair2.fq.gz > mapping/DummySample_unpair_2.sam
+
+
+# Sam to bam
+java -jar $PICARD_HOME/picard.jar AddOrReplaceReadGroups -INPUT mapping/DummySample_pair.sam -OUTPUT mapping/DummySample_pair.bam -SORT_ORDER coordinate \
+-RGLB 1708 -RGPL ILLUMINA -RGPU 386 -RGSM DummySample
+
+java -jar $PICARD_HOME/picard.jar AddOrReplaceReadGroups -INPUT mapping/DummySample_unpair_1.sam -OUTPUT mapping/DummySample_unpair_1.bam -SORT_ORDER coordinate \
+-RGLB 1708 -RGPL ILLUMINA -RGPU 386 -RGSM DummySample
+
+java -jar $PICARD_HOME/picard.jar AddOrReplaceReadGroups -INPUT mapping/DummySample_unpair_2.sam -OUTPUT mapping/DummySample_unpair_2.bam -SORT_ORDER coordinate \
+-RGLB 1708 -RGPL ILLUMINA -RGPU 386 -RGSM DummySample
+
+
+# Merge bam
+java -jar $PICARD_HOME/picard.jar MergeSamFiles -INPUT mapping/DummySample_pair.bam -INPUT mapping/DummySample_unpair_1.bam -INPUT mapping/DummySample_unpair_2.bam \
+-OUTPUT mapping/DummySample.bam -SORT_ORDER coordinate -ASSUME_SORTED true
+
+# Index bam
+java -jar $PICARD_HOME/picard.jar BuildBamIndex -INPUT mapping/DummySample.bam
+ 
+# Remove intermediate files
+rm mapping/DummySample_*
+
+# Check the mapping stats:
+samtools flagstat mapping/DummySample.bam > mapping/DummySample_MappingStats
+
+
+
+# Mark duplicates
+java -jar $PICARD_HOME/picard.jar MarkDuplicates -INPUT mapping/DummySample.bam -OUTPUT mapping/DummySample_marked.bam -METRICS_FILE mapping/DummySample_marked.metrics
+
+#Index .bam file again
+java -jar $PICARD_HOME/picard.jar BuildBamIndex -INPUT mapping/DummySample_marked.bam
+
+# Remove intermediate files
+rm mapping/DummySample.ba*
+
+# Add meaningful IDs
+java -jar $PICARD_HOME/picard.jar AddOrReplaceReadGroups -INPUT mapping/DummySample_marked.bam -OUTPUT mapping/DummySample_marked_renamed.bam -RGID DummySample -RGLB DummySample-lib \
+-RGPL ILLUMINA -RGPU DummySample-01 -RGSM DummySample
+
+# Index again
+java -jar $PICARD_HOME/picard.jar BuildBamIndex -INPUT mapping/DummySample_marked_renamed.bam
+
+# Remove intermediate files
+rm mapping/DummySample_marked.ba*
+
+# Run coverage stats
+samtools coverage mapping/DummySample_marked_renamed.bam | grep -v '#' | awk '{sum+=$7} END { print "DummySample, AverageCoverage = ",sum/NR}' > mapping/DummySample_CoverageStats
