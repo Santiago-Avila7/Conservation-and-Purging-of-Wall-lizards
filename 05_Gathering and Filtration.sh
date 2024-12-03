@@ -1,15 +1,5 @@
 #!/bin/bash -l
 
-#SBATCH -A naiss2024-22-490
-#SBATCH -J MergFilt
-#SBATCH --output=%x_%j.out
-#SBATCH -p shared
-#SBATCH -t 6:00:00
-#SBATCH -N 1
-#SBATCH -n 8
-#SBATCH --mail-type=TIME_LIMIT
-#SBATCH --mail-user=sa5674av-s@student.lu.se
-
 # Merge the SNPs of all chromosomes and apply filters
 
 #Load modules 
@@ -24,7 +14,7 @@ mkdir -p /cfs/klemming/projects/snic/snic2022-23-124/Santiago/SNP_calling/FinalV
 
 savedir=/cfs/klemming/projects/snic/snic2022-23-124/Santiago/SNP_calling/FinalVCFs
 
-#Combination of individual chromosome VCFs: 
+#Combination of individual chromosomes VCFs: 
 
 date
 echo "Final Gathering starting" 
@@ -52,11 +42,11 @@ java -jar $PICARD_HOME/picard.jar GatherVcfs \
 
 echo "Whole-genome VCF completed" 
 
-#Index the final VCF
+#Index the final VCF 
 gatk IndexFeatureFile -I ${savedir}/All_SNP_filtered.vcf.gz
 bcftools index ${savedir}/All_SNP_filtered.vcf.gz
 
-# keep only 'pass' SNPs and index again:
+# keep only 'pass' SNPs from  hard-filtering and index again:
 bcftools view ${savedir}/All_SNP_filtered.vcf.gz -f 'PASS,.' -Ob -o ${savedir}/All_SNP_filtered_pass.bcf
 bcftools index ${savedir}/All_SNP_filtered_pass.bcf
 
