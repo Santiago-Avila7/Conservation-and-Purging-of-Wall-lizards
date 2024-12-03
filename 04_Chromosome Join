@@ -1,15 +1,5 @@
 #!/bin/bash -l
 
-#SBATCH -A naiss2024-22-490
-#SBATCH -J JointGeno
-#SBATCH --output=%x_%j_chrom_field.out
-#SBATCH -p shared
-#SBATCH -t 12:00:00
-#SBATCH -N 1
-#SBATCH -n 8
-#SBATCH --mail-type=TIME_LIMIT
-#SBATCH --mail-user=sa5674av-s@student.lu.se
-
 #Objective: Combine the GVFs after variant calling, genotype and filter variants. 
 # Santiago Avila-Quintero 07/11/2024 
 
@@ -41,6 +31,7 @@ ls -1 ${datadir}/*/HaplotypeCaller/*_${chr}.g.vcf.gz > ${savedir}/GVCFs_${chr}.l
 
 
 #Combination of GVFs 
+
 gatk --java-options "-Xmx8g" CombineGVCFs \
 -R ${reference} \
 -V ${savedir}/GVCFs_${chr}.list \
