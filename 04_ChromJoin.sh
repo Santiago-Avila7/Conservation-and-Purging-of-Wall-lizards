@@ -1,0 +1,101 @@
+#!/bin/bash -l
+
+#SBATCH -A naiss2024-22-490
+#SBATCH -J JointGeno
+#SBATCH --output=%x_%j_chrom_field.out
+#SBATCH -p shared
+#SBATCH -t 12:00:00
+#SBATCH -N 1
+#SBATCH -n 8
+#SBATCH --mail-type=TIME_LIMIT
+#SBATCH --mail-user=sa5674av-s@student.lu.se
+
+#Objective: Combine the GVFs after variant calling, genotype and filter variants. 
+# Santiago Avila-Quintero 07/11/2024 
+
+module load gatk/4.5.0.0
+
+#Define the locations of the input and otputs 
+datadir=/cfs/klemming/projects/snic/snic2022-23-124/Santiago/SNP_calling
+
+mkdir -p /cfs/klemming/projects/snic/snic2022-23-124/Santiago/SNP_calling/JointGenotyping
+
+savedir=/cfs/klemming/projects/snic/snic2022-23-124/Santiago/SNP_calling/JointGenotyping
+
+# Define the variables
+reference=/cfs/klemming/projects/snic/snic2022-23-124/Santiago/RefGenome/GCA_004329235.1_PodMur_1.0_genomic.fna
+
+chr=chrom_field
+
+date 
+echo "${chr}_in process" 
+
+#Create the temporary directories: 
+ 
+mkdir ${savedir}/tmp_dir_comb_${chr}
+mkdir ${savedir}/tmp_dir_geno_${chr}
+
+#Create a list of GVFs per chromosome: 
+
+ls -1 ${datadir}/*/HaplotypeCaller/*_${chr}.g.vcf.gz > ${savedir}/GVCFs_${chr}.list | xargs realpath ${savedir}/GVCFs_${chr}.list
+
+
+#Combination of GVFs 
+gatk --java-options "-Xmx8g" CombineGVCFs \
+-R ${reference} \
+-V ${savedir}/GVCFs_${chr}.list \
+-O ${savedir}/${chr}.g.vcf.gz \
+--tmp-dir ${savedir}/tmp_dir_comb_${chr}
+
+echo "Combining GVCFs completed"
+
+#Genotyping. 
+gatk --java-options "-Xmx8g" GenotypeGVCFs \
+-R ${reference} \
+-V ${savedir}/${chr}.g.vcf.gz \
+-O ${savedir}/${chr}.vcf.gz \
+--tmp-dir ${savedir}/tmp_dir_geno_${chr}
+
+echo "Genotyping completed"
+
+#Remove temporary directories/files 
+rm ${savedir}/GVCFs_${chr}.list
+rm -rf ${savedir}/tmp_dir_comb_${chr}
+rm -rf ${savedir}/tmp_dir_geno_${chr}
+# rm ${savedir}/${chr}.g.vcf.gz*
+
+#Select SNP and Indel Variants
+gatk --java-options "-Xmx8g" SelectVariants \
+-V ${savedir}/${chr}.vcf.gz \
+-O ${savedir}/${chr}_SNP.vcf.gz \
+-select-type SNP
+gatk IndexFeatureFile -I ${savedir}/${chr}_SNP.vcf.gz
+
+gatk --java-options "-Xmx8g" SelectVariants \
+-V ${savedir}/${chr}.vcf.gz \
+-O ${savedir}/${chr}_INDEL.vcf.gz \
+-select-type INDEL
+gatk IndexFeatureFile -I ${savedir}/${chr}_INDEL.vcf.gz
+
+echo "Applying filters"
+
+#Filtration of variants per chromosome / Hardfiltering + Dp estimated by #samples x Desired covergae
+
+gatk --java-options "-Xmx8g" VariantFiltration \
+-R ${reference} \
+-V "${savedir}/${chr}_SNP.vcf.gz" \
+--mask "${savedir}/${chr}_INDEL.vcf.gz" \
+--mask-extension 10 \
+--mask-name InDel \
+--filter-expression "FS > 60.0" --filter-name "FisherStrand" \
+--filter-expression "QD < 2.0" --filter-name "QD2" \
+--filter-expression "QUAL < 30.0" --filter-name "QUAL30" \
+--filter-expression "MQ < 40.0" --filter-name "MapQual40" \
+--filter-expression "MQRankSum < -12.5" --filter-name "MQRankSum-12.5" \
+--filter-expression "ReadPosRankSum < -8.0" --filter-name "ReadPosRankSum-8" \
+--filter-expression "DP < 256"  --filter-name "minDepth" \
+--filter-expression "DP > 1120"  --filter-name "maxDepth" \
+-O ${savedir}/${chr}_SNP_filtered.vcf.gz
+
+
+echo "Filtering and merging of ${chr} completed"
