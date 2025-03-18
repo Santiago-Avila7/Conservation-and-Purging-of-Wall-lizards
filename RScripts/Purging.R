@@ -11,7 +11,7 @@ Purging_full<-  Purging_data %>%
   relocate(Origin, .after = ID)
 
 # Get all the intergenic sites data 
-Intergenic_data<- read.table("Data/Purging/intergenic_allele_counts.tsv", h=T)
+Intergenic_data<- read.table("Data/Purging/100k_intergenic_allele_counts.tsv", h=T)
 Intergenic_data<- Intergenic_data %>% rename (ID=1)
 Intergenic_full<- merge (Intergenic_data, Lizards, by= "ID")
 
@@ -26,21 +26,6 @@ Intergenic_AF <- Intergenic_AF %>%
   pivot_wider(
     names_from = Origin,              # Column to use for new column names
     values_from = Total_Intergenic_Freq)  # Column to use for values
-
-# Modifier random runs (100k sites)
-Modifier_data <- read.table("Data/Purging/merged_modifier.tsv", h=T)
-Modifier_data<- Modifier_data %>% rename (ID=2)
-
-# Merge 
-Purging_full <- Purging_full %>%
-  left_join(Modifier_data, by = c("Jackknife" = "Jackknife", "ID" = "ID"))
-
-# Replace MODIFIER and Total_Alleles columns in the original dataset
-Purging_full <- Purging_full %>%
-  mutate( MODIFIER = ifelse(is.na(MODIFIER.y), MODIFIER.x, MODIFIER.y),
-    Total_Alleles = Total_Alleles.x) %>%
-  select(-MODIFIER.x, -MODIFIER.y, -Total_Alleles.x, -Total_Alleles.y)
-
 
 
 #Summary of allele frequencies per origin and impact ----
@@ -66,7 +51,7 @@ Purging_sum <- Purging_sum %>%
          starts_with("MODIFIER"))
 
 
-# Functions
+# Functions ----
 
 # Using the Jackknife data
 Lxy <- function(freq_category_X, freq_category_Y, freq_intergenic_X, freq_intergenic_Y) {
@@ -97,25 +82,26 @@ Lxy_fixed <- function(popX, popY, freq_category_X, freq_category_Y) {
 
 Purging_sum <- Purging_sum %>% 
   mutate(
-    # For Int-IITA vs Nat-ITA
-    L_High_ITA_IntNat = Lxy(`HIGH_freq_Int-ITA`,`HIGH_freq_Nat-ITA`,
-                            `MODIFIER_freq_Int-ITA`,`MODIFIER_freq_Nat-ITA`),
-    L_Moderate_ITA_IntNat = Lxy(`MODERATE_freq_Int-ITA`,`MODERATE_freq_Nat-ITA`,
-                                `MODIFIER_freq_Int-ITA`,`MODIFIER_freq_Nat-ITA`),,
-    L_Low_ITA_IntNat = Lxy(`LOW_freq_Int-ITA`,`LOW_freq_Nat-ITA`,
-                           `MODIFIER_freq_Int-ITA`,`MODIFIER_freq_Nat-ITA`),,
-    L_Modifier_ITA_IntNat = Lxy(`MODIFIER_freq_Int-ITA`,`MODIFIER_freq_Nat-ITA`,
-                                `MODIFIER_freq_Int-ITA`, `MODIFIER_freq_Nat-ITA`),
+    # For Int-ITA vs Nat-ITA
+    L_High_ITA_IntNat = Lxy_fixed("Int-ITA", "Nat-ITA",
+                                  `HIGH_freq_Int-ITA`, `HIGH_freq_Nat-ITA`),
+    L_Moderate_ITA_IntNat = Lxy_fixed("Int-ITA", "Nat-ITA", 
+                                      `MODERATE_freq_Int-ITA`, `MODERATE_freq_Nat-ITA`),
+    L_Low_ITA_IntNat = Lxy_fixed("Int-ITA", "Nat-ITA", 
+                                 `LOW_freq_Int-ITA`, `LOW_freq_Nat-ITA`),
+    L_Modifier_ITA_IntNat = Lxy_fixed("Int-ITA", "Nat-ITA", 
+                                      `MODIFIER_freq_Int-ITA`, `MODIFIER_freq_Nat-ITA`),
     
     # For Int-ITA vs Nat-ITA
-    L_High_ITA_NatInt = Lxy(`HIGH_freq_Nat-ITA`,`HIGH_freq_Int-ITA`,
-                            `MODIFIER_freq_Nat-ITA`,`MODIFIER_freq_Int-ITA`),
-    L_Moderate_ITA_NatInt = Lxy(`MODERATE_freq_Nat-ITA`,`MODERATE_freq_Int-ITA`,
-                                `MODIFIER_freq_Nat-ITA`,`MODIFIER_freq_Int-ITA`),
-    L_Low_ITA_NatInt = Lxy(`LOW_freq_Nat-ITA`,`LOW_freq_Int-ITA`,
-                           `MODIFIER_freq_Nat-ITA`,`MODIFIER_freq_Int-ITA`),
-    L_Modifier_ITA_NatInt = Lxy(`MODIFIER_freq_Nat-ITA`,`MODIFIER_freq_Int-ITA`,
-                                `MODIFIER_freq_Nat-ITA`,`MODIFIER_freq_Int-ITA`),
+    L_High_ITA_NatInt = Lxy_fixed("Nat-ITA", "Int-ITA",
+                                  `HIGH_freq_Nat-ITA`, `HIGH_freq_Int-ITA`),
+    L_Moderate_ITA_NatInt = Lxy_fixed("Nat-ITA", "Int-ITA",
+                                      `MODERATE_freq_Nat-ITA`, `MODERATE_freq_Int-ITA`),
+    L_Low_ITA_NatInt = Lxy_fixed("Nat-ITA", "Int-ITA",
+                                 `LOW_freq_Nat-ITA`, `LOW_freq_Int-ITA`),
+    L_Modifier_ITA_NatInt = Lxy_fixed("Nat-ITA", "Int-ITA",
+                                      `MODIFIER_freq_Nat-ITA`, `MODIFIER_freq_Int-ITA`),
+    
     # For Rxy 
     Rxy_High_Ita = L_High_ITA_IntNat/L_High_ITA_NatInt,
     Rxy_Moderate_Ita = L_Moderate_ITA_IntNat/L_Moderate_ITA_NatInt,
@@ -125,38 +111,31 @@ Purging_sum <- Purging_sum %>%
 Rxy_Italian<- Purging_sum %>%
   select(Rxy_High_Ita,
          Rxy_Moderate_Ita,
-         Rxy_Low_Ita)
+         Rxy_Low_Ita,
+         Rxy_Modifier_Ita)
 
 # Transform data 
 Rxy_Italian <- Rxy_Italian %>% 
-  pivot_longer(
-    cols = starts_with("Rxy_"),  # Select all R_ columns
+  pivot_longer(cols = starts_with("Rxy_"),  # Select all R_ columns
     names_to = "Impact",       # New column for impact categories
-    values_to = "Rxy"          # New column for Rxy values
-  ) %>% 
-  mutate(
-    Impact = str_remove(Impact, "Rxy_"),  # Clean up impact names
-    Impact = str_remove(Impact, "_Ita")
-  )
+    values_to = "Rxy") %>%      # New column for Rxy values
+    mutate(Impact = str_remove(Impact, "Rxy_"),  # Clean up impact names
+    Impact = str_remove(Impact, "_Ita"))
+
+
 
 # Plot ---- 
-
 ggplot(Rxy_Italian, aes(x = Rxy, y = Impact, fill = Impact)) +
   geom_boxplot() +
-  labs(
-    title = "Rxy by Impact Category",
-    x = "Rxy",
-    y = "Impact Category"
-  ) +
+  labs(title = "Rxy by Impact Category",
+       x = "Rxy",
+       y = "Impact Category") +
   theme_minimal()
 
 ggplot(Rxy_Italian, aes(x = Rxy, fill = Impact, color = Impact)) +
   geom_density(alpha = 0.5) +  # Overlay density curves
-  labs(
-    title = "Distribution of Rxy by Impact Category",
-    x = "Rxy",
-    y = "Density"
-  ) +
+  labs( title = "Distribution of Rxy by Impact Category",
+        x = "Rxy", y = "Density") +
   theme_minimal()
 
 # Stats ---- 
@@ -199,67 +178,58 @@ print(t_test_results)
 Purging_sum <- Purging_sum %>% 
   mutate(
     # For Int-FRA vs Nat-FRA
-    L_High_FRA_IntNat = Lxy(`HIGH_freq_Int-FRA`,`HIGH_freq_Nat-FRA`,
-                            `MODIFIER_freq_Int-FRA`,`MODIFIER_freq_Nat-FRA`),
-    L_Moderate_FRA_IntNat = Lxy(`MODERATE_freq_Int-FRA`,`MODERATE_freq_Nat-FRA`,
-                                `MODIFIER_freq_Int-FRA`,`MODIFIER_freq_Nat-FRA`),,
-    L_Low_FRA_IntNat = Lxy(`LOW_freq_Int-FRA`,`LOW_freq_Nat-FRA`,
-                           `MODIFIER_freq_Int-FRA`,`MODIFIER_freq_Nat-FRA`),,
-    L_Modifier_FRA_IntNat = Lxy(`MODIFIER_freq_Int-FRA`,`MODIFIER_freq_Nat-FRA`,
-                                `MODIFIER_freq_Int-FRA`, `MODIFIER_freq_Nat-FRA`),
+    L_High_FRA_IntNat = Lxy_fixed("Int-FRA", "Nat-FRA",
+                                  `HIGH_freq_Int-FRA`, `HIGH_freq_Nat-FRA`),
+    L_Moderate_FRA_IntNat = Lxy_fixed("Int-FRA", "Nat-FRA", 
+                                      `MODERATE_freq_Int-FRA`, `MODERATE_freq_Nat-FRA`),
+    L_Low_FRA_IntNat = Lxy_fixed("Int-FRA", "Nat-FRA", 
+                                 `LOW_freq_Int-FRA`, `LOW_freq_Nat-FRA`),
+    L_Modifier_FRA_IntNat = Lxy_fixed("Int-FRA", "Nat-FRA", 
+                                      `MODIFIER_freq_Int-FRA`, `MODIFIER_freq_Nat-FRA`),
     
     # For Int-FRA vs Nat-FRA
-    L_High_FRA_NatInt = Lxy(`HIGH_freq_Nat-FRA`,`HIGH_freq_Int-FRA`,
-                            `MODIFIER_freq_Nat-FRA`,`MODIFIER_freq_Int-FRA`),
-    L_Moderate_FRA_NatInt = Lxy(`MODERATE_freq_Nat-FRA`,`MODERATE_freq_Int-FRA`,
-                                `MODIFIER_freq_Nat-FRA`,`MODIFIER_freq_Int-FRA`),
-    L_Low_FRA_NatInt = Lxy(`LOW_freq_Nat-FRA`,`LOW_freq_Int-FRA`,
-                           `MODIFIER_freq_Nat-FRA`,`MODIFIER_freq_Int-FRA`),
-    L_Modifier_FRA_NatInt = Lxy(`MODIFIER_freq_Nat-FRA`,`MODIFIER_freq_Int-FRA`,
-                                `MODIFIER_freq_Nat-FRA`,`MODIFIER_freq_Int-FRA`),
+    L_High_FRA_NatInt = Lxy_fixed("Nat-FRA", "Int-FRA",
+                                  `HIGH_freq_Nat-FRA`, `HIGH_freq_Int-FRA`),
+    L_Moderate_FRA_NatInt = Lxy_fixed("Nat-FRA", "Int-FRA",
+                                      `MODERATE_freq_Nat-FRA`, `MODERATE_freq_Int-FRA`),
+    L_Low_FRA_NatInt = Lxy_fixed("Nat-FRA", "Int-FRA",
+                                 `LOW_freq_Nat-FRA`, `LOW_freq_Int-FRA`),
+    L_Modifier_FRA_NatInt = Lxy_fixed("Nat-FRA", "Int-FRA",
+                                      `MODIFIER_freq_Nat-FRA`, `MODIFIER_freq_Int-FRA`),
     
     # For Rxy 
-    Rxy_High_Fra = L_High_FRA_IntNat/L_High_FRA_NatInt,
-    Rxy_Moderate_Fra = L_Moderate_FRA_IntNat/L_Moderate_FRA_NatInt,
-    Rxy_Low_Fra = L_Low_FRA_IntNat/L_Low_FRA_NatInt,
-    Rxy_Modifier_Fra = L_Modifier_FRA_IntNat/L_Modifier_FRA_NatInt)
-
+    Rxy_High_FRA = L_High_FRA_IntNat/L_High_FRA_NatInt,
+    Rxy_Moderate_FRA = L_Moderate_FRA_IntNat/L_Moderate_FRA_NatInt,
+    Rxy_Low_FRA = L_Low_FRA_IntNat/L_Low_FRA_NatInt,
+    Rxy_Modifier_FRA = L_Modifier_FRA_IntNat/L_Modifier_FRA_NatInt)
 
 Rxy_French<- Purging_sum %>%
-  select(Rxy_High_Fra,
-         Rxy_Moderate_Fra,
-         Rxy_Low_Fra)
+  select(Rxy_High_FRA,
+         Rxy_Moderate_FRA,
+         Rxy_Low_FRA,
+         Rxy_Modifier_FRA)
 
 # Transform data 
 Rxy_French <- Rxy_French %>% 
-  pivot_longer(
-    cols = starts_with("Rxy_"),  # Select all R_ columns
+  pivot_longer(cols = starts_with("Rxy_"),  # Select all R_ columns
     names_to = "Impact",       # New column for impact categories
-    values_to = "Rxy"          # New column for Rxy values
-  ) %>% 
-  mutate(
-    Impact = str_remove(Impact, "Rxy_"),  # Clean up impact names
-    Impact = str_remove(Impact, "_Fra")
-  )
-
+    values_to = "Rxy") %>%      # New column for Rxy values
+   mutate(Impact = str_remove(Impact, "Rxy_"),  # Clean up impact names
+    Impact = str_remove(Impact, "_Ita"))
 # Plot ---- 
 
 ggplot(Rxy_French, aes(x = Rxy, y = Impact, fill = Impact)) +
   geom_boxplot() +
-  labs(
-    title = "Rxy by Impact Category",
-    x = "Rxy",
-    y = "Impact Category"
-  ) +
+  labs(title = "Rxy by Impact Category",
+       x = "Rxy",
+       y = "Impact Category") +
   theme_minimal()
 
 ggplot(Rxy_French, aes(x = Rxy, fill = Impact, color = Impact)) +
   geom_density(alpha = 0.5) +  # Overlay density curves
-  labs(
-    title = "Distribution of Rxy by Impact Category",
-    x = "Rxy",
-    y = "Density"
-  ) +
+  labs(title = "Distribution of Rxy by Impact Category",
+       x = "Rxy",
+       y = "Density") +
   theme_minimal()
 
 # Stats ---- 
@@ -315,16 +285,94 @@ cliff.delta(Low_values, Moderate_values)
 
 # Experiments ----
 
-# Functions ----
+# Getting equal size number comparisons ----
 
-Lxy <- function(freq_category_X, freq_category_Y, freq_intergenic_X, freq_intergenic_Y) {
-  numerator = freq_category_X * (1 - freq_category_Y)
-  denominator = freq_intergenic_X * (1 - freq_intergenic_Y)
-  numerator / denominator
-}
+Intergenic_Ita <- Intergenic_full %>%
+  filter(Origin %in% c("Int-ITA", "Nat-ITA")) %>%
+  # Select one sample per Abbpop within each Origin group
+  group_by(Origin, Abbpop) %>%
+  slice_sample(n = 1) %>%  # Randomly pick one sample per Abbpop
+  # Ensure exactly 6 samples per group (Int-ITA and Nat-ITA)
+  group_by(Origin) %>%
+  slice_head(n = 6) %>%  # Take the first 6 Abbpops (adjust if sampling is needed)
+  # Summarize totals
+  group_by(Origin) %>%
+  summarise(
+    Total_Alternates = sum(Total_Alternates),
+    Total_Variants = sum(Total_Variants),
+    .groups = "drop"
+  ) %>%
+  # Calculate frequencies
+  mutate(Frequency = Total_Alternates / Total_Variants)
 
-fixed_intergenic <- c("Int-FRA" = 0.4877882,"Int-ITA" = 0.4876248,
-                      "Nat-FRA" = 0.4877862,"Nat-ITA" = 0.4876157)
+
+
+#Summary of allele frequencies per origin and impact
+# Get a fair comparison 6 v 6 in Italian samples 
+
+Purging_Ita <- Purging_full %>%
+  # Focus on Italian samples (Int-ITA and Nat-ITA)
+  filter(grepl("-ITA$", Origin)) %>%
+  # For each Jackknife, Origin, and Abbpop, select one random sample
+  group_by(Jackknife, Origin, Abbpop) %>%
+  slice_sample(n = 1) %>%  # One sample per Abbpop
+  # For each Jackknife and Origin, select up to 6 Abbpops (adjust `n` if needed)
+  group_by(Jackknife, Origin) %>%
+  slice_sample(n = 6) %>%  # Select 6 unique Abbpops
+  # Summarize counts across selected samples
+  group_by(Jackknife, Origin) %>%
+  summarise(
+    HIGH = sum(HIGH),
+    MODERATE = sum(MODERATE),
+    LOW = sum(LOW),
+    MODIFIER = sum(MODIFIER),
+    Total_Alleles = sum(Total_Alleles),
+    .groups = "drop"
+  ) %>%
+  # Calculate frequencies
+  mutate(
+    HIGH_freq = HIGH / Total_Alleles,
+    MODERATE_freq = MODERATE / Total_Alleles,
+    LOW_freq = LOW / Total_Alleles,
+    MODIFIER_freq = MODIFIER / Total_Alleles
+  ) %>%
+  # Pivot to wide format for comparison
+  pivot_wider(
+    names_from = Origin,
+    values_from = c(HIGH_freq, MODERATE_freq, LOW_freq, MODIFIER_freq),
+    names_glue = "{.value}_{Origin}"
+  )
+
+
+# Select just frequency columns for clarity
+Purging_Ita <- Purging_Ita %>% 
+  select(Jackknife, 
+         starts_with("HIGH_"), 
+         starts_with("MODERATE_"), 
+         starts_with("LOW_"), 
+         starts_with("MODIFIER_"))
+
+# Remove NAs and get one line per Jackknife
+Purging_Ita <- Purging_Ita %>%
+  # Reshape to long format to separate Impact and Origin
+  pivot_longer(
+    cols = -Jackknife,
+    names_to = c("Impact", "Origin"),
+    names_sep = "_freq_",  # Split column names at "_freq_"
+    values_to = "Frequency"
+  ) %>%
+  # Remove rows with NA frequencies
+  filter(!is.na(Frequency)) %>%
+  # Reshape back to wide format (one row per Jackknife)
+  pivot_wider(
+    names_from = c(Impact, Origin),
+    names_glue = "{Impact}_freq_{Origin}",
+    values_from = Frequency
+  )
+
+# Modify the function to match Italian counts
+# Get the frequency values of the frequency of all integenic sites 
+fixed_intergenic <- c("Int-ITA" = 0.7648287,"Nat-ITA" = 0.7261919)
 
 Lxy_fixed <- function(popX, popY, freq_category_X, freq_category_Y) {
   # Get fixed intergenic frequencies for the populations
@@ -337,17 +385,9 @@ Lxy_fixed <- function(popX, popY, freq_category_X, freq_category_Y) {
   numerator / denominator
 }
 
+# Get Rxy for 6 vs 6 
 
-Lxy(Purging_sum$`HIGH_freq_Int-ITA`,Purging_sum$`HIGH_freq_Nat-ITA`,
-    Purging_sum$`MODIFIER_freq_Int-ITA`,Purging_sum$`MODERATE_freq_Nat-ITA`)
-
-Lxy_fixed("Int-ITA","Nat-ITA",
-          Purging_sum$`MODIFIER_freq_Int-ITA`,Purging_sum$`MODIFIER_freq_Nat-ITA`)
-
-
-# Calculate Pairwise Lxy and Lyx and R Italian per Impact----
-
-Purging_sum <- Purging_sum %>% 
+Purging_Ita <- Purging_Ita %>% 
   mutate(
     # For Int-ITA vs Nat-ITA
     L_High_ITA_IntNat = Lxy_fixed("Int-ITA", "Nat-ITA",
@@ -375,7 +415,7 @@ Purging_sum <- Purging_sum %>%
     Rxy_Low_Ita = L_Low_ITA_IntNat/L_Low_ITA_NatInt,
     Rxy_Modifier_Ita = L_Modifier_ITA_IntNat/L_Modifier_ITA_NatInt)
 
-Rxy_Italian<- Purging_sum %>%
+Rxy_Italian<- Purging_Ita %>%
   select(Rxy_High_Ita,
          Rxy_Moderate_Ita,
          Rxy_Low_Ita,
@@ -388,96 +428,19 @@ Rxy_Italian <- Rxy_Italian %>%
     names_to = "Impact",       # New column for impact categories
     values_to = "Rxy"          # New column for Rxy values
   ) %>% 
-  mutate(
-    Impact = str_remove(Impact, "Rxy_"),  # Clean up impact names
-    Impact = str_remove(Impact, "_Ita")
-  )
-  
+  mutate(Impact = str_remove(Impact, "Rxy_"),  # Clean up impact names
+    Impact = str_remove(Impact, "_Ita"))
+
+# Plots 
 ggplot(Rxy_Italian, aes(x = Rxy, y = Impact, fill = Impact)) +
   geom_boxplot() +
-  labs(
-    title = "Rxy by Impact Category",
-    x = "Rxy",
-    y = "Impact Category"
-  ) +
+  labs(title = "Rxy by Impact Category",
+       x = "Rxy",
+       y = "Impact Category") +
   theme_minimal()
 
-# French 
-Purging_sum <- Purging_sum %>% 
-  mutate(
-    # For Int-FRA vs Nat-FRA
-    L_High_FRA_IntNat = Lxy_fixed("Int-FRA", "Nat-FRA",
-                                  `HIGH_freq_Int-FRA`, `HIGH_freq_Nat-FRA`),
-    L_Moderate_FRA_IntNat = Lxy_fixed("Int-FRA", "Nat-FRA", 
-                                      `MODERATE_freq_Int-FRA`, `MODERATE_freq_Nat-FRA`),
-    L_Low_FRA_IntNat = Lxy_fixed("Int-FRA", "Nat-FRA", 
-                                 `LOW_freq_Int-FRA`, `LOW_freq_Nat-FRA`),
-    L_Modifier_FRA_IntNat = Lxy_fixed("Int-FRA", "Nat-FRA", 
-                                      `MODIFIER_freq_Int-FRA`, `MODIFIER_freq_Nat-FRA`),
-    
-    # For Int-FRA vs Nat-FRA
-    L_High_FRA_NatInt = Lxy_fixed("Nat-FRA", "Int-FRA",
-                                  `HIGH_freq_Nat-FRA`, `HIGH_freq_Int-FRA`),
-    L_Moderate_FRA_NatInt = Lxy_fixed("Nat-FRA", "Int-FRA",
-                                      `MODERATE_freq_Nat-FRA`, `MODERATE_freq_Int-FRA`),
-    L_Low_FRA_NatInt = Lxy_fixed("Nat-FRA", "Int-FRA",
-                                 `LOW_freq_Nat-FRA`, `LOW_freq_Int-FRA`),
-    L_Modifier_FRA_NatInt = Lxy_fixed("Nat-FRA", "Int-FRA",
-                                      `MODIFIER_freq_Nat-FRA`, `MODIFIER_freq_Int-FRA`),
-    
-    # For Rxy 
-    Rxy_High_FRA = L_High_FRA_IntNat/L_High_FRA_NatInt,
-    Rxy_Moderate_FRA = L_Moderate_FRA_IntNat/L_Moderate_FRA_NatInt,
-    Rxy_Low_FRA = L_Low_FRA_IntNat/L_Low_FRA_NatInt,
-    Rxy_Modifier_FRA = L_Modifier_FRA_IntNat/L_Modifier_FRA_NatInt)
-
-Rxy_French<- Purging_sum %>%
-  select(Rxy_High_FRA,
-         Rxy_Moderate_FRA,
-         Rxy_Low_FRA,
-         Rxy_Modifier_FRA)
-
-# Transform data 
-Rxy_French <- Rxy_French %>% 
-  pivot_longer(
-    cols = starts_with("Rxy_"),  # Select all R_ columns
-    names_to = "Impact",       # New column for impact categories
-    values_to = "Rxy"          # New column for Rxy values
-  ) %>% 
-  mutate(
-    Impact = str_remove(Impact, "Rxy_"),  # Clean up impact names
-    Impact = str_remove(Impact, "_Ita")
-  )
-
-ggplot(Rxy_French, aes(x = Rxy, y = Impact, fill = Impact)) +
-  geom_boxplot() +
-  labs(
-    title = "Rxy by Impact Category",
-    x = "Rxy",
-    y = "Impact Category"
-  ) +
-  theme_minimal()
-
-
-ggplot(Rxy_French, aes(x = Rxy, fill = Impact, color = Impact)) +
+ggplot(Rxy_Italian, aes(x = Rxy, fill = Impact, color = Impact)) +
   geom_density(alpha = 0.5) +  # Overlay density curves
-  labs(
-    title = "Distribution of Rxy by Impact Category",
-    x = "Rxy",
-    y = "Density"
-  ) +
+  labs( title = "Distribution of Rxy by Impact Category",
+        x = "Rxy", y = "Density") +
   theme_minimal()
-
-#Stats different from 0 -----
-t_test_results <- Rxy_Italian %>%
-  group_by(Impact) %>%
-  summarise(
-    t_test_p = t.test(Rxy, mu = 1)$p.value,  # One-sample t-test
-    mean_Rxy = mean(Rxy),
-    .groups = "drop"
-  )
-
-print(t_test_results)
-
-pairwise.wilcox.test(Rxy_Italian$Rxy, Rxy_Italian$Impact, p.adjust.method = "bonferroni")
-
