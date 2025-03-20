@@ -1,8 +1,8 @@
 #!/bin/bash -l
 #SBATCH -A naiss2025-22-189
 #SBATCH -J ROH_BCFTools
-#SBATCH --output=logs/ROHs/%x_%j.out
-#SBATCH --error=logs/ROHs/%x_%j.err
+#SBATCH --output=/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Scripts/logs/ROHs/%x_%j.out
+#SBATCH --error=/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Scripts/logs/ROHs/%x_%j.err
 #SBATCH -p shared
 #SBATCH -t 4:00:00
 #SBATCH --mem=32G
@@ -26,18 +26,16 @@ echo "searching for ROHs"
 bcftools roh \
  --GTs-only 30 \
  --AF-tag AF \
- -M 1e-8 \
- -Or -o ${savedir}/All_French_ROH_BCFtools \
- ${datadir}/All_French_final.vcf
+  -Or -o ${savedir}/All_French_ROH_BCFtools \
+ ${datadir}/All_French_final.vcf.gz
  
 echo "French ROHs found" 
 
 bcftools roh \
  --GTs-only 30 \
  --AF-tag AF \
- -M 1e-8 \
  -Or -o ${savedir}/All_Italian_ROH_BCFtools \
- ${datadir}/All_Italian_final.vcf
+ ${datadir}/All_Italian_final.vcf.gz
  
 echo "Italian ROHs found" 
 
