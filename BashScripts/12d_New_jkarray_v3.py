@@ -14,7 +14,7 @@ from collections import defaultdict
 # Configuration
 JACKKNIFE_ID = int(sys.argv[1])  # SLURM_ARRAY_TASK_ID
 VCF_PATH = "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Origin/All_Italian_annotated.vcf.gz"  # Updated VCF path
-FIXED_INTERGENIC_FILE = "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Jackknife/4th/Italian_intergenic_sites.txt"
+FIXED_INTERGENIC_FILE = "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Jackknife/4th/italian_intergenic_sites.txt"
 BLOCK_FILE = "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Jackknife/renamed_blocks.bed"
 SAMPLE_LISTS = {
     'introduced': "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Scripts/Introduced_Purging_Test",

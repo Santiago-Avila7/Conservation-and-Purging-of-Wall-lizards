@@ -20,7 +20,7 @@ def main():
     with pysam.VariantFile(VCF_PATH) as vcf:
         for record in vcf:
             # Extract ANN field and check if it's intergenic
-            ann_entries = record.info.get('ANN', [])
+            ann_entries = record.info.get('ANN', []) 
             if any('intergenic' in entry.lower() for entry in ann_entries):
                 intergenic_sites.append((record.chrom, record.pos))
     

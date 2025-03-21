@@ -37,13 +37,13 @@ snpEff eff -v ${Genome_Database} ${savedir}/All_French_Purging_tmp.vcf.gz   \
  -stats ${savedir}/All_French_Annotated.html -csvStats ${savedir}/All_French_Annotated.csv > ${savedir}/All_French_annotated.vcf
 
 bgzip ${savedir}/All_French_annotated.vcf
-bcftools index --tbi ${savedir}/All_French_annotated.vcf.gz 
+bcftools index --tbi ${savedir}/All_French_Annotated.vcf.gz 
 
 snpEff eff -v ${Genome_Database} ${savedir}/All_Italian_Purging_tmp.vcf.gz   \
  -stats ${savedir}/All_Italian_Annotated.html -csvStats ${savedir}/All_Italian_Annotated.csv > ${savedir}/All_Italian_annotated.vcf
 
 bgzip ${savedir}/All_Italian_annotated.vcf
-bcftools index --tbi ${savedir}/All_Italian_annotated.vcf.gz 
+bcftools index --tbi ${savedir}/All_Italian_Annotated.vcf.gz 
 
 rm ${savedir}/*_Purging_tmp.*
 

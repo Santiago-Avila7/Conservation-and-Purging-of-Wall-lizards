@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Output file
-dir=/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Jackknife/3rd
+dir=/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Jackknife/4th
 
 # Write header once
-echo -e "Jackknife\tOrigin\tHIGH\tMODERATE\tLOW\tMODIFIER\tTotal_Alleles\tIntergenic_Alternate\tIntergenic_Total" > "${dir}//All_runs_3rd.tsv"
+echo -e "Jackknife\tOrigin\tHIGH\tMODERATE\tLOW\tMODIFIER\tTotal_Alleles\tIntergenic_Alternate\tIntergenic_Total" > "${dir}//All_runs_4th.tsv"
 
 # Process each jackknife file
 for f in ${dir}/*.tsv; do
@@ -12,5 +12,5 @@ for f in ${dir}/*.tsv; do
     jk=$(basename "$f" | grep -oP '[0-9]+(?=_)')
     
     # Append data to output file (skip header in input files)
-    awk -v jk="$jk" 'NR > 1 {print jk "\t" $0}' "$f" >> "${dir}//All_runs_3rd.tsv"
+    awk -v jk="$jk" 'NR > 1 {print jk "\t" $0}' "$f" >> "${dir}//All_runs_4th.tsv"
 done
