@@ -17,31 +17,31 @@ conda activate snpeff
 module load bcftools/1.20
 
 # Define directories and genome name
-datadir=/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging
+datadir=/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Origin
 mkdir -p /cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Impacts
 savedir=/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Impacts
 
 date 
 
-# Filter annotoations based on impact 
-SnpSift filter "(ANN[*].IMPACT has 'HIGH')" ${datadir}/All_Origins_annotated.vcf.gz > ${savedir}/All_high.vcf
-bgzip ${savedir}/All_high.vcf
-bcftools index --tbi ${savedir}/All_high.vcf.gz
+# Filter annotoations based on impact for Italian populations
+SnpSift filter "(ANN[*].IMPACT has 'HIGH')" ${datadir}/All_Italian_annotated.vcf.gz > ${savedir}/All_Italian_high.vcf
+bgzip ${savedir}/All_Italian_high.vcf
+bcftools index --tbi ${savedir}/All_Italian_high.vcf.gz
 
-SnpSift filter "(ANN[*].IMPACT has 'MODERATE')" ${datadir}/All_Origins_annotated.vcf.gz > ${savedir}/All_moderate.vcf
-bgzip ${savedir}/All_moderate.vcf
-bcftools index --tbi ${savedir}/All_moderate.vcf.gz
+SnpSift filter "(ANN[*].IMPACT has 'MODERATE')" ${datadir}/All_Italian_annotated.vcf.gz > ${savedir}/All_Italian_moderate.vcf
+bgzip ${savedir}/All_Italian_moderate.vcf
+bcftools index --tbi ${savedir}/All_Italian_moderate.vcf.gz
 
-SnpSift filter "(ANN[*].IMPACT has 'lOW')" ${datadir}/All_Origins_annotated.vcf.gz > ${savedir}/All_low.vcf
-bgzip ${savedir}/All_low.vcf
-bcftools index --tbi ${savedir}/All_low.vcf.gz
+SnpSift filter "(ANN[*].IMPACT has 'lOW')" ${datadir}/All_Italian_annotated.vcf.gz > ${savedir}/All_Italian_low.vcf
+bgzip ${savedir}/All_Italian_low.vcf
+bcftools index --tbi ${savedir}/All_Italian_low.vcf.gz
 
-SnpSift filter "(ANN[*].IMPACT has 'MODIFIER')" ${datadir}/All_Origins_annotated.vcf.gz > ${savedir}/All_moderate.vcf
-bgzip ${savedir}/All_moderate.vcf
+SnpSift filter "(ANN[*].IMPACT has 'MODIFIER')" ${datadir}/All_Italian_annotated.vcf.gz > ${savedir}/All_Italian_moderate.vcf
+bgzip ${savedir}/All_Italian_moderate.vcf
 bcftools index --tbi ${savedir}/All_moderate.vcf.gz
 echo "VCF subsets done"
 
 # Extract Intergenic regions
-SnpSift filter "(ANN[0].EFFECT has 'intergenic_region')" ${datadir}/All_Origins_annotated.vcf.gz > ${savedir}/All_intergenic.vcf
-bgzip ${savedir}/All_intergenic.vcf
-bcftools index --tbi ${savedir}/All_intergenic.vcf.gz
+SnpSift filter "(ANN[0].EFFECT has 'intergenic_region')" ${datadir}/All_Italian_annotated.vcf.gz > ${savedir}/All_Italian_intergenic.vcf
+bgzip ${savedir}/All_Italian_intergenic.vcf
+bcftools index --tbi ${savedir}/All_Italian_intergenic.vcf.gz

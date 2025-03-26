@@ -1,16 +1,23 @@
 #!/bin/bash
 
-# Output file
-dir=/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Jackknife/4th
+# Output directory and file
+dir="/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Jackknife/5th"
+output_file="${dir}/All_runs_5th.tsv"
 
-# Write header once
-echo -e "Jackknife\tOrigin\tHIGH\tMODERATE\tLOW\tMODIFIER\tTotal_Alleles\tIntergenic_Alternate\tIntergenic_Total" > "${dir}//All_runs_4th.tsv"
+# Write header (matches the new script's output format)
+echo -e "Jackknife\tOrigin\tAlternate_HIGH\tTotal_HIGH\tAlternate_MODERATE\tTotal_MODERATE\tAlternate_LOW\tTotal_LOW\tAlternate_MODIFIER\tTotal_MODIFIER\tAlternate_INTERGENIC\tTotal_INTERGENIC" > "$output_file"
 
 # Process each jackknife file
-for f in ${dir}/*.tsv; do
-    # Extract jackknife ID from filename
-    jk=$(basename "$f" | grep -oP '[0-9]+(?=_)')
+for f in "${dir}"/*_results.tsv; do
+    # Extract jackknife ID from filename (e.g., jackknife_42_results.tsv → 42)
+    jk=$(basename "$f" | grep -oP '(?<=jackknife_)[0-9]+(?=_results)')
     
-    # Append data to output file (skip header in input files)
-    awk -v jk="$jk" 'NR > 1 {print jk "\t" $0}' "$f" >> "${dir}//All_runs_4th.tsv"
+    # Append data while:
+    # 1. Skipping the header (NR > 1)
+    # 2. Adding the jackknife ID as first column
+    awk -v jk="$jk" 'NR > 1 {print jk "\t" $0}' "$f" >> "$output_file"
 done
+
+# Verify output
+echo "Merged results saved to: $output_file"
+wc -l "$output_file"
