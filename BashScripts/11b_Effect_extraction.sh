@@ -32,13 +32,13 @@ SnpSift filter "(ANN[*].IMPACT has 'MODERATE')" ${datadir}/All_Italian_annotated
 bgzip ${savedir}/All_Italian_moderate.vcf
 bcftools index --tbi ${savedir}/All_Italian_moderate.vcf.gz
 
-SnpSift filter "(ANN[*].IMPACT has 'lOW')" ${datadir}/All_Italian_annotated.vcf.gz > ${savedir}/All_Italian_low.vcf
+SnpSift filter "(ANN[*].IMPACT has 'LOW')" ${datadir}/All_Italian_annotated.vcf.gz > ${savedir}/All_Italian_low.vcf
 bgzip ${savedir}/All_Italian_low.vcf
 bcftools index --tbi ${savedir}/All_Italian_low.vcf.gz
 
-SnpSift filter "(ANN[*].IMPACT has 'MODIFIER')" ${datadir}/All_Italian_annotated.vcf.gz > ${savedir}/All_Italian_moderate.vcf
-bgzip ${savedir}/All_Italian_moderate.vcf
-bcftools index --tbi ${savedir}/All_moderate.vcf.gz
+SnpSift filter "(ANN[*].IMPACT has 'MODIFIER')" ${datadir}/All_Italian_annotated.vcf.gz > ${savedir}/All_Italian_modifier.vcf
+bgzip ${savedir}/All_Italian_modifier.vcf
+bcftools index --tbi ${savedir}/All_Italian_modifier.vcf.gz
 echo "VCF subsets done"
 
 # Extract Intergenic regions

@@ -11,18 +11,18 @@ from collections import defaultdict
 # Configuration
 JACKKNIFE_ID = int(sys.argv[1])  # SLURM_ARRAY_TASK_ID
 VCF_PATHS = {
-    'HIGH': "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Impacts/All_high.vcf.gz",
-    'MODERATE': "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Impacts/All_moderate.vcf.gz",
-    'LOW': "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Impacts/All_low.vcf.gz",
-    'MODIFIER': "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Impacts/All_modifier.vcf.gz",
-    'INTERGENIC': "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Impacts/All_intergenic.vcf.gz"
+    'HIGH': "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Impacts/All_Italian_high.vcf.gz",
+    'MODERATE': "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Impacts/All_Italian_moderate.vcf.gz",
+    'LOW': "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Impacts/All_Italian_low.vcf.gz",
+    'MODIFIER': "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Impacts/All_Italian_modifier.vcf.gz",
+    'INTERGENIC': "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Impacts/All_Italian_intergenic.vcf.gz"
 }
 BLOCK_FILE = "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Jackknife/renamed_blocks.bed"
 SAMPLE_LISTS = {
     'introduced': "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Scripts/Introduced_Purging_Test",
     'native': "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Scripts/Italian_Native"
 }
-OUTPUT_DIR = "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Jackknife/5th"
+OUTPUT_DIR = "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Jackknife/Italian_SizeControl_ItalianVCF"
 
 # ========================
 # INITIALIZATION SECTION
@@ -43,11 +43,11 @@ def load_samples(path):
 sample_sets = {k: load_samples(v) for k, v in SAMPLE_LISTS.items()}
 
 # Debug: Verify sample loading
-print(f"\n=== SAMPLE LOADING DEBUG ===", file=sys.stderr)
-print(f"Loaded {len(sample_sets['introduced'])} introduced samples", file=sys.stderr)
-print(f"Loaded {len(sample_sets['native'])} native samples", file=sys.stderr)
-print(f"First 3 introduced: {sample_sets['introduced'][:3]}", file=sys.stderr)
-print(f"First 3 native: {sample_sets['native'][:3]}", file=sys.stderr)
+print(f"\n=== SAMPLE LOADING DEBUG ===", file=sys.stdout)
+print(f"Loaded {len(sample_sets['introduced'])} introduced samples", file=sys.stdout)
+print(f"Loaded {len(sample_sets['native'])} native samples", file=sys.stdout)
+print(f"First 3 introduced: {sample_sets['introduced'][:3]}", file=sys.stdout)
+print(f"First 3 native: {sample_sets['native'][:3]}", file=sys.stdout)
 
 # Load genomic block to exclude for this jackknife iteration
 with open(BLOCK_FILE) as f:
@@ -89,27 +89,27 @@ def process_genotype(gt):
 # ========================
 # MAIN PROCESSING LOOP
 # ========================
-print("\n=== BEGIN PROCESSING VCFs ===", file=sys.stderr)
+print("\n=== BEGIN PROCESSING VCFs ===", file=sys.stdout)
 
 for impact_category, vcf_path in VCF_PATHS.items():
-    print(f"\nProcessing {impact_category} VCF...", file=sys.stderr)
+    print(f"\nProcessing {impact_category} VCF...", file=sys.stdout)
     
     try:
         with pysam.VariantFile(vcf_path) as vcf:
             # Get actual sample names in VCF (case-sensitive)
             vcf_samples = set(vcf.header.samples)
-            print(f"VCF contains {len(vcf_samples)} samples", file=sys.stderr)
+            print(f"VCF contains {len(vcf_samples)} samples", file=sys.stdout)
             
             # Process each population group
             for group in ['introduced', 'native']:
-                print(f"\nProcessing {group} samples...", file=sys.stderr)
+                print(f"\nProcessing {group} samples...", file=sys.stdout)
                 
                 # Find intersection between our samples and VCF samples
                 valid_samples = [s for s in sample_sets[group] if s in vcf_samples]
-                print(f"Found {len(valid_samples)} valid samples", file=sys.stderr)
+                print(f"Found {len(valid_samples)} valid samples", file=sys.stdout)
                 
                 if not valid_samples:
-                    print(f"WARNING: No valid samples for {group} in {impact_category} VCF!", file=sys.stderr)
+                    print(f"WARNING: No valid samples for {group} in {impact_category} VCF!", file=sys.stdout)
                     continue
                 
                 # Reset VCF reader for each group to ensure complete processing
@@ -138,7 +138,7 @@ for impact_category, vcf_path in VCF_PATHS.items():
                     counters[group][impact_category]['Total'] += total_alleles
                     records_processed += 1
                 
-                print(f"Processed {records_processed} variants for {group}", file=sys.stderr)
+                print(f"Processed {records_processed} variants for {group}", file=sys.stdout)
     
     except Exception as e:
         print(f"ERROR processing {vcf_path}: {str(e)}", file=sys.stderr)
@@ -148,7 +148,7 @@ for impact_category, vcf_path in VCF_PATHS.items():
 # OUTPUT GENERATION
 # ========================
 output_path = f"{OUTPUT_DIR}/jackknife_{JACKKNIFE_ID}_results.tsv"
-print(f"\n=== WRITING RESULTS TO {output_path} ===", file=sys.stderr)
+print(f"\n=== WRITING RESULTS TO {output_path} ===", file=sys.stdout)
 
 with open(output_path, 'w') as f:
     # Write header
@@ -170,8 +170,8 @@ with open(output_path, 'w') as f:
         f.write(line)
         
         # Debug output
-        print(f"\nFinal counts for {group}:", file=sys.stderr)
+        print(f"\nFinal counts for {group}:", file=sys.stdout)
         for cat in ['HIGH', 'MODERATE', 'LOW', 'MODIFIER', 'INTERGENIC']:
-            print(f"{cat}: {counters[group][cat]['Alternate']}/{counters[group][cat]['Total']}", file=sys.stderr)
+            print(f"{cat}: {counters[group][cat]['Alternate']}/{counters[group][cat]['Total']}", file=sys.stdout)
 
-print("\n=== ANALYSIS COMPLETE ===", file=sys.stderr)
+print("\n=== ANALYSIS COMPLETE ===", file=sys.stdout)

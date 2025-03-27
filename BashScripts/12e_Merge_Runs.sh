@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Output directory and file
-dir="/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Jackknife/5th"
-output_file="${dir}/All_runs_5th.tsv"
+dir="/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Jackknife/Italian_NoSizeControl_allVCF"
+output_file="${dir}/All_runs_6th.tsv"
 
 # Write header (matches the new script's output format)
 echo -e "Jackknife\tOrigin\tAlternate_HIGH\tTotal_HIGH\tAlternate_MODERATE\tTotal_MODERATE\tAlternate_LOW\tTotal_LOW\tAlternate_MODIFIER\tTotal_MODIFIER\tAlternate_INTERGENIC\tTotal_INTERGENIC" > "$output_file"
