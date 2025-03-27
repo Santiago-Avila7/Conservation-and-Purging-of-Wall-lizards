@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -A naiss2025-22-189
-#SBATCH -J Jk_allele_count7
+#SBATCH -J Jk_allele_count8
 #SBATCH --array=1-109
 #SBATCH --output=/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Scripts/logs/Purging/Jackknife/%x_%j_%a.out
 #SBATCH --error=/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Scripts/logs/Purging/Jackknife/%x_%j_%a.err

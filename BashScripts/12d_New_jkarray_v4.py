@@ -11,18 +11,18 @@ from collections import defaultdict
 # Configuration
 JACKKNIFE_ID = int(sys.argv[1])  # SLURM_ARRAY_TASK_ID
 VCF_PATHS = {
-    'HIGH': "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Impacts/All_Italian_high.vcf.gz",
-    'MODERATE': "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Impacts/All_Italian_moderate.vcf.gz",
-    'LOW': "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Impacts/All_Italian_low.vcf.gz",
-    'MODIFIER': "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Impacts/All_Italian_modifier.vcf.gz",
-    'INTERGENIC': "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Impacts/All_Italian_intergenic.vcf.gz"
+    'HIGH': "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Impacts/All_high.vcf.gz",
+    'MODERATE': "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Impacts/All_moderate.vcf.gz",
+    'LOW': "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Impacts/All_low.vcf.gz",
+    'MODIFIER': "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Impacts/All_modifier.vcf.gz",
+    'INTERGENIC': "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Impacts/All_intergenic.vcf.gz"
 }
 BLOCK_FILE = "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Jackknife/renamed_blocks.bed"
 SAMPLE_LISTS = {
-    'introduced': "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Scripts/Introduced_Purging_Test",
-    'native': "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Scripts/Italian_Native"
+    'introduced': "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Scripts/French_Introduced",
+    'native': "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Scripts/French_Native"
 }
-OUTPUT_DIR = "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Jackknife/Italian_SizeControl_ItalianVCF"
+OUTPUT_DIR = "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Jackknife/French_NoSizeControl_allVCF"
 
 # ========================
 # INITIALIZATION SECTION
