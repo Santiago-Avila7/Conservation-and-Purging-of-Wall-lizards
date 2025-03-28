@@ -325,8 +325,9 @@ ggplot(Rxy_Natives, aes(x = Rxy, y = Impact, fill = Impact)) +
   scale_x_continuous(limits = c(0.85, 1.15))
 
 
-ggplot(Rxy_French, aes(x = Rxy, fill = Impact, color = Impact)) +
+ggplot(Rxy_Natives, aes(x = Rxy, fill = Impact, color = Impact)) +
   geom_density(alpha = 0.5) +  # Overlay density curves
   labs( title = "Distribution of Rxy by Impact Category",
         x = "Rxy", y = "Density") +
-  theme_minimal()      
+  theme_minimal() +
+  scale_x_continuous(limits = c(0.95, 1.15))
