@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH -A naiss2025-22-189
-#SBATCH -J Jk_allele_count8
+#SBATCH -J Jk_allele_count9
 #SBATCH --array=1-109
-#SBATCH --output=/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Scripts/logs/Purging/Jackknife/%x_%j_%a.out
-#SBATCH --error=/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Scripts/logs/Purging/Jackknife/%x_%j_%a.err
+#SBATCH --output=/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Scripts/logs/Purging/Jackknife/FrenchvItalian/%x_%j_%a.out
+#SBATCH --error=/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Scripts/logs/Purging/Jackknife/FrenchvItalian/%x_%j_%a.err
 #SBATCH -p shared
 #SBATCH -t 3:00:00
 #SBATCH --mem=500MB  
@@ -21,4 +21,4 @@ module load pysam/0.22.1-cpeGNU-23.12
 
 
 ## Run the Python script and pass the SLURM array task ID
-python3 /cfs/klemming/projects/snic/snic2022-23-124/Santiago/Conservation-and-Purging-of-Wall-lizards/BashScripts/12d_New_jkarray_v4.py ${SLURM_ARRAY_TASK_ID}
+python3 /cfs/klemming/projects/snic/snic2022-23-124/Santiago/Conservation-and-Purging-of-Wall-lizards/BashScripts/12d_Allele_count_jk.py ${SLURM_ARRAY_TASK_ID}

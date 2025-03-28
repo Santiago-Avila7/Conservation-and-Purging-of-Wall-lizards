@@ -19,10 +19,10 @@ VCF_PATHS = {
 }
 BLOCK_FILE = "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Jackknife/renamed_blocks.bed"
 SAMPLE_LISTS = {
-    'introduced': "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Scripts/French_Introduced",
-    'native': "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Scripts/French_Native"
+    'introduced': "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Scripts/French_Native",
+    'native': "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Scripts/Italian_Native"
 }
-OUTPUT_DIR = "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Jackknife/French_NoSizeControl_allVCF"
+OUTPUT_DIR = "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Jackknife/French_Italian_Naitve"
 
 # ========================
 # INITIALIZATION SECTION
