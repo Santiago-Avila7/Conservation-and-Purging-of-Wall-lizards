@@ -10,7 +10,7 @@ Lxy <- function(freq_category_X, freq_category_Y, freq_intergenic_X, freq_interg
   numerator / denominator
 }
 
-# Italian data corrected by sample size - All origins annotation ----
+# Italian data corrected by sample size ----
 Purging_data <- read.table("Data/Purging/All_runs_5th.tsv", h=T)
 
 # Calculate allele frequency in each Jackknife 
@@ -79,7 +79,8 @@ ggplot(Rxy_Italian, aes(x = Rxy, y = Impact, fill = Impact)) +
   labs(title = "Rxy by Impact Category",
        x = "Rxy",
        y = "Impact Category") +
-  theme_minimal()
+  theme_minimal() +
+  scale_x_continuous(limits = c(0.97, 1.03))
 
 ggplot(Rxy_Italian, aes(x = Rxy, fill = Impact, color = Impact)) +
   geom_density(alpha = 0.5) +  # Overlay density curves
@@ -88,7 +89,8 @@ ggplot(Rxy_Italian, aes(x = Rxy, fill = Impact, color = Impact)) +
   theme_minimal()         
 
 
-# Italian data all samples - All origins annotation ----
+
+# Italian data all samples  ----
 
 Purging_data <- read.table("Data/Purging/All_runs_6th.tsv", h=T)
 
@@ -158,7 +160,8 @@ ggplot(Rxy_Italian, aes(x = Rxy, y = Impact, fill = Impact)) +
   labs(title = "Rxy by Impact Category",
        x = "Rxy",
        y = "Impact Category") +
-  theme_minimal()
+  theme_minimal() +
+  scale_x_continuous(limits = c(0.97, 1.03))
 
 ggplot(Rxy_Italian, aes(x = Rxy, fill = Impact, color = Impact)) +
   geom_density(alpha = 0.5) +  # Overlay density curves
@@ -167,8 +170,9 @@ ggplot(Rxy_Italian, aes(x = Rxy, fill = Impact, color = Impact)) +
   theme_minimal()         
 
 
-# Italian data corrected by sample size - Only Italian annotation
-Purging_data <- read.table("Data/Purging/All_runs_7th.tsv", h=T)
+
+# French all samples - All origins ----
+Purging_data <- read.table("Data/Purging/All_runs_8th.tsv", h=T)
 
 # Calculate allele frequency in each Jackknife 
 Purging_data<- Purging_data %>%
@@ -217,29 +221,31 @@ Purging_wide<- Purging_wide %>%
     Rxy_Modifier = L_Modifier_Int_Nat/L_Modifier_Nat_Int)
 
 # Select data 
-Rxy_Italian<- Purging_wide %>%
+Rxy_French<- Purging_wide %>%
   select(Rxy_High,
          Rxy_Moderate,
          Rxy_Low,
          Rxy_Modifier)
 
 # Transform data 
-Rxy_Italian <- Rxy_Italian %>% 
+Rxy_French <- Rxy_French %>% 
   pivot_longer(cols = starts_with("Rxy_"),  # Select all R_ columns
                names_to = "Impact",       # New column for impact categories
                values_to = "Rxy") %>%      # New column for Rxy values
   mutate(Impact = str_remove(Impact, "Rxy_")) # Clean up impact names
 
 # Plots 
-ggplot(Rxy_Italian, aes(x = Rxy, y = Impact, fill = Impact)) +
+ggplot(Rxy_French, aes(x = Rxy, y = Impact, fill = Impact)) +
   geom_boxplot() +
   labs(title = "Rxy by Impact Category",
        x = "Rxy",
        y = "Impact Category") +
-  theme_minimal()
+  theme_minimal() +
+  scale_x_continuous(limits = c(0.97, 1.03))
 
-ggplot(Rxy_Italian, aes(x = Rxy, fill = Impact, color = Impact)) +
+
+ggplot(Rxy_French, aes(x = Rxy, fill = Impact, color = Impact)) +
   geom_density(alpha = 0.5) +  # Overlay density curves
   labs( title = "Distribution of Rxy by Impact Category",
         x = "Rxy", y = "Density") +
-  theme_minimal()         
+  theme_minimal()      
