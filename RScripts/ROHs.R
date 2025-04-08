@@ -4,13 +4,13 @@
 pacman::p_load(ggplot2,openxlsx,RColorBrewer,dplyr,grid,gridExtra,ggrepel,
                reshape2,tidyr,paletteer,ggtree,stringr,gtools)
 
-# 1. PLINK ----
-# 1.1 Full data preparation ----
 # Load origin data and ROH
 Lizards <- readWorkbook("Data/Samples_Santiago.xlsx", sheet = 2)
 Italian <- Lizards %>% filter(Origin %in% c("Int-ITA", "Nat-ITA"))
 French <- Lizards %>% filter(Origin %in% c("Int-FRA", "Nat-FRA"))
 
+# 1. PLINK ----
+# 1.1 Full data preparation ----
 #Load ROH data and edit table names
 Ita_ROHs <-read.table("Data/PopGen/All_Italian_ROHs_1.hom",h=T)
 Fra_ROHs <- read.table("Data/PopGen/All_French_ROHs_1.hom",h=T)
@@ -293,7 +293,7 @@ Ita_BCF_Summary <- Ita_BCF %>%
   summarise(
     Total_ROH_BP = sum(BP),  # Total length of ROHs
     Avg_ROH_BP = mean(BP),   # Average ROH length
-    Total_Autosomal_BP =  1423936391,   # Constant column
+    Total_Autosomal_BP =  1423432860,   # Total ROH length for the pseudogenome 
     FROH = Total_ROH_BP / Total_Autosomal_BP) # FROH Calculation
 
 
@@ -314,7 +314,7 @@ Fra_BCF_Summary <- Fra_BCF %>%
   summarise(
     Total_ROH_BP = sum(BP),  # Total length of ROHs
     Avg_ROH_BP = mean(BP),   # Average ROH length
-    Total_Autosomal_BP =  1423936391,   # Constant column
+    Total_Autosomal_BP =  1423391036,   # Total ROH length for the pseudogenome 
     FROH = Total_ROH_BP / Total_Autosomal_BP) 
 
 # Plot 
