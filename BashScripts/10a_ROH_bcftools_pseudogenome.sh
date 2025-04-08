@@ -1,61 +1,80 @@
 #!/bin/bash -l
 #SBATCH -A naiss2025-22-189
-#SBATCH -J ROH_BCFTools_PSG
+#SBATCH -J ROH_Pseudogenome
 #SBATCH --output=/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Scripts/logs/ROHs/%x_%j.out
 #SBATCH --error=/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Scripts/logs/ROHs/%x_%j.err
 #SBATCH -p shared
 #SBATCH -t 4:00:00
 #SBATCH --mem=32G
 #SBATCH --mail-type=TIME_LIMIT
-#SBATCH --mail-type=FAIl
+#SBATCH --mail-type=FAIL
 #SBATCH --mail-user=sa5674av-s@student.lu.se
 
-
-# Load required modules
+# =============================================
+# 1. Load required modules
+# =============================================
 module load bcftools/1.20
 
-# Define input/output directories
+# =============================================
+# 2. Define input VCFs and directories
+# =============================================
 datadir="/cfs/klemming/projects/snic/snic2022-23-124/Santiago/SNP_calling/FinalVCFs/Diversity_Data"
 savedir="/cfs/klemming/projects/snic/snic2022-23-124/Santiago/PopGen/Gene_Diversity/ROHs"
-mkdir -p "$savedir"
 
-# Define input VCFs
-french_vcf="${datadir}/All_French_final.vcf.gz"
-italian_vcf="${datadir}/All_Italian_final.vcf.gz"
+FRENCH_VCF="$datadir/All_French_final.vcf.gz"
+ITALIAN_VCF="$datadir/All_Italian_final.vcf.gz"
 
-# Define output VCFs with pseudogenome
-french_pseudo_vcf="${savedir}/All_French_pseudohom.vcf.gz"
-italian_pseudo_vcf="${savedir}/All_Italian_pseudohom.vcf.gz"
+# =============================================
+# 3. Function to create pseudogenome and compute total ROH length
+# =============================================
+run_pseudogenome_roh() {
+  local INPUT_VCF="$1"
+  local LABEL="$2"
 
-# Step 1: Extract VCF header and manually add the sample name
-echo "Preparing pseudohom VCFs..."
-zcat "$french_vcf" | head -n 1000 | grep "^#" > "${savedir}/header_french.tmp"
-zcat "$italian_vcf" | head -n 1000 | grep "^#" > "${savedir}/header_italian.tmp"
+  local PSEUDO_VCF="${savedir}/${LABEL}_pseudohom.vcf.gz"
+  local ROH_OUTPUT="${savedir}/${LABEL}_pseudohom_ROH.txt.gz"
+  local LENGTH_FILE="${savedir}/${LABEL}_pseudohom_ROH_length.tsv"
+  local HEADER_TMP="${savedir}/${LABEL}_header.tmp"
 
-# **Manually edit the last line in header_french.tmp and header_italian.tmp to add "pseudohom" as a sample**
+  echo "[${LABEL}] Creating pseudogenome VCF with all 0/0 genotypes..."
 
-# Step 2: Append a fully homozygous (0/0) genotype to all positions
-zcat "$french_vcf" | grep -v "^#" | sed -e 's/$/\t0\/0/g' | cat "${savedir}/header_french.tmp" - | bgzip > "$french_pseudo_vcf"
-zcat "$italian_vcf" | grep -v "^#" | sed -e 's/$/\t0\/0/g' | cat "${savedir}/header_italian.tmp" - | bgzip > "$italian_pseudo_vcf"
+  mkdir -p "$savedir"
 
-# Step 3: Index the new pseudo-genome VCFs
-bcftools index "$french_pseudo_vcf"
-bcftools index "$italian_pseudo_vcf"
+  # Build header
+  zcat "$INPUT_VCF" | grep "^##" > "$HEADER_TMP"
+  echo -e "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tpseudohom" >> "$HEADER_TMP"
 
-# Step 4: Run bcftools roh on modified VCFs
-echo "Running ROH analysis..."
-bcftools roh --GTs-only 30 --AF-tag AF -Or -o "${savedir}/All_French_ROH_Pseudo_BCFtools" "$french_pseudo_vcf"
-bcftools roh --GTs-only 30 --AF-tag AF -Or -o "${savedir}/All_Italian_ROH_Pseudo_BCFtools" "$italian_pseudo_vcf"
+  # Create records with 0/0 genotypes
+  zcat "$INPUT_VCF" | grep -v "^#" | \
+    sed -e 's/\\$/\t0\/0/' | \
+    cat "$HEADER_TMP" - | bgzip > "$PSEUDO_VCF"
 
-echo "ROH analysis completed!"
+  bcftools index "$PSEUDO_VCF"
 
-# Step 5: Summarize total ROH length for pseudogenome
-zcat "${savedir}/All_French_ROH_Pseudo_BCFtools" | \
-awk -v s="pseudohom" 'BEGIN{sum=0}{if ($2==s){sum+=$6}}END{printf "%s\tROH length: %d\n", s, sum}' > "${savedir}/All_French_Pseudo_ROH_Summary.txt"
+  echo "[${LABEL}] Running bcftools roh..."
+  bcftools roh -G 30 -Orz -o "$ROH_OUTPUT" "$PSEUDO_VCF"
 
-zcat "${savedir}/All_Italian_ROH_Pseudo_BCFtools" | \
-awk -v s="pseudohom" 'BEGIN{sum=0}{if ($2==s){sum+=$6}}END{printf "%s\tROH length: %d\n", s, sum}' > "${savedir}/All_Italian_Pseudo_ROH_Summary.txt"
+  echo "[${LABEL}] Summarizing ROH length..."
+  zcat "$ROH_OUTPUT" | \
+    awk -v s="pseudohom" 'BEGIN{sum=0} $2==s {sum+=$6} END{print s"\t"sum}' > "$LENGTH_FILE"
 
-echo "ROH summaries saved in:"
-echo "${savedir}/All_French_Pseudo_ROH_Summary.txt"
-echo "${savedir}/All_Italian_Pseudo_ROH_Summary.txt"
+  echo "[${LABEL}] Done. Length saved to $LENGTH_FILE"
+
+  # Cleanup temp files
+  rm -f "$HEADER_TMP" "$ROH_OUTPUT"
+}
+
+# =============================================
+# 4. Run for French and Italian VCFs
+# =============================================
+run_pseudogenome_roh "$FRENCH_VCF" "French"
+run_pseudogenome_roh "$ITALIAN_VCF" "Italian"
+
+# =============================================
+# 5. Merge summary outputs
+# =============================================
+echo -e "Label\tROH_Total_Length" > "$savedir/pseudogenome_roh_summary.tsv"
+cat "$savedir/French_pseudohom_ROH_length.tsv" >> "$savedir/pseudogenome_roh_summary.tsv"
+cat "$savedir/Italian_pseudohom_ROH_length.tsv" >> "$savedir/pseudogenome_roh_summary.tsv"
+
+echo "All pseudogenome ROH analyses completed. Summary saved to pseudogenome_roh_summary.tsv"
