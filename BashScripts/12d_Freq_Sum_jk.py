@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Jackknife Analysis for Relative Frequency Sums (fab/fba)
+Jackknife Analysis for Relative Frequency Sums (fxy/fyx)
 Calculates sum of per-site relative frequencies between introduced/native groups
 """
 
@@ -19,18 +19,18 @@ VCF_PATHS = {
 }
 BLOCK_FILE = "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Jackknife/renamed_blocks.bed"
 SAMPLE_LISTS = {
-    'introduced': "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Scripts/Italian_Introduced",
+    'introduced': "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Scripts/French_Native",
     'native': "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Scripts/Italian_Native"
 }
-OUTPUT_DIR = "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/Jackknife/All_Italian"
+OUTPUT_DIR = "/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/NativeVsNative"
 
 # ========================
 # INITIALIZATION SECTION
 # ========================
 # Initialize relative frequency counters
 sum_relative = {
-    'fab': defaultdict(float),  # Σ(f_introduced * (1 - f_native))
-    'fba': defaultdict(float)   # Σ(f_native * (1 - f_introduced))
+    'fxy': defaultdict(float),  # Σ(f_introduced * (1 - f_native))
+    'fyx': defaultdict(float)   # Σ(f_native * (1 - f_introduced))
 }
 
 def load_samples(path):
@@ -41,11 +41,22 @@ def load_samples(path):
 # Load sample lists
 sample_sets = {k: load_samples(v) for k, v in SAMPLE_LISTS.items()}
 
-# Debug: Verify sample loading
+# Debug: Verify sample loading with names
 print("\n=== SAMPLE LOADING DEBUG ===")
-print(f"Introduced samples: {len(sample_sets['introduced'])}")
-print(f"Native samples: {len(sample_sets['native'])}")
+print(f"Introduced samples ({len(sample_sets['introduced'])}):")
+print("---------------------------")
+for i, sample in enumerate(sample_sets['introduced'][:5]):  # First 5 samples
+    print(f"{i+1}. {sample}")
+if len(sample_sets['introduced']) > 5:
+    print(f"... plus {len(sample_sets['introduced']) - 5} more")
 
+print(f"\nNative samples ({len(sample_sets['native'])}):")
+print("-----------------------")
+for i, sample in enumerate(sample_sets['native'][:5]):  # First 5 samples
+    print(f"{i+1}. {sample}")
+if len(sample_sets['native']) > 5:
+    print(f"... plus {len(sample_sets['native']) - 5} more")
+    
 # Load genomic block to exclude
 with open(BLOCK_FILE) as f:
     blocks = [line.strip().split('\t') for line in f]
@@ -110,8 +121,8 @@ for impact_category, vcf_path in VCF_PATHS.items():
                     f_native = native_alt / native_total
                     
                     # Calculate and sum relative frequencies
-                    sum_relative['fab'][impact_category] += f_intro * (1 - f_native)
-                    sum_relative['fba'][impact_category] += f_native * (1 - f_intro)
+                    sum_relative['fxy'][impact_category] += f_intro * (1 - f_native)
+                    sum_relative['fyx'][impact_category] += f_native * (1 - f_intro)
                     
     except Exception as e:
         print(f"ERROR processing {vcf_path}: {str(e)}", file=sys.stderr)
@@ -125,7 +136,7 @@ print(f"\n=== WRITING RESULTS TO {output_path} ===")
 
 # Create header
 categories = ['HIGH', 'MODERATE', 'LOW', 'MODIFIER', 'INTERGENIC']
-header = "\t".join([f"Sum_fab_{cat}\tSum_fba_{cat}" for cat in categories]) + "\n"
+header = "\t".join([f"Sum_fxy_{cat}\tSum_fyx_{cat}" for cat in categories]) + "\n"
 
 with open(output_path, 'w') as f:
     f.write(header)
@@ -133,8 +144,8 @@ with open(output_path, 'w') as f:
     # Build data line
     line_parts = []
     for cat in categories:
-        line_parts.append(f"{sum_relative['fab'][cat]:.6f}")
-        line_parts.append(f"{sum_relative['fba'][cat]:.6f}")
+        line_parts.append(f"{sum_relative['fxy'][cat]:.6f}")
+        line_parts.append(f"{sum_relative['fyx'][cat]:.6f}")
     
     f.write("\t".join(line_parts) + "\n")
 

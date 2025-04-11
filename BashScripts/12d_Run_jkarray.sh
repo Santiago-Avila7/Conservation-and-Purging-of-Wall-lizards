@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH -A naiss2025-22-189
 #SBATCH -J Jk_freq_Sum
-#SBATCH --array=3-109
-#SBATCH --output=/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Scripts/logs/Purging/Jackknife/ItalianFreq/%x_%j_%a.out
-#SBATCH --error=/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Scripts/logs/Purging/Jackknife/ItalianFreq/%x_%j_%a.err
+#SBATCH --array=1-109
+#SBATCH --output=/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Scripts/logs/Purging/Final/All_Native/%x_%j_%a.out
+#SBATCH --error=/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Scripts/logs/Purging/Final/All_Natives/%x_%j_%a.err
 #SBATCH -p shared
 #SBATCH -t 3:00:00
 #SBATCH --mem=500MB  
