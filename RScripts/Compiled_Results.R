@@ -384,7 +384,7 @@ Ita_BCF <- read.table("Data/PopGen/All_Italian_ROH_BCFtools",h=F)
 Ita_BCF <- Ita_BCF %>%
   select(-1) %>% # Remove the first column - a bunch of RG
   rename(ID = V2, CHR = V3, POS1 = V4, POS2 = V5, BP = V6, MARKERS = V7, QUALITY = V8) %>% 
-  filter(QUALITY >= 90, BP >= 100000)  
+  filter(QUALITY >= 90, BP >= 500000)  
 
 # Merge the clean data with the origin
 Ita_BCF<- merge(Italian,Ita_BCF,by="ID")
@@ -415,7 +415,7 @@ Fra_BCF <- read.table("Data/PopGen/All_French_ROH_BCFtools",h=F)
 Fra_BCF <- Fra_BCF %>%
   select(-1) %>% # Remove the first column - a bunch of RG
   rename(ID = V2, CHR = V3, POS1 = V4, POS2 = V5, BP = V6, MARKERS = V7, QUALITY = V8) %>% 
-  filter(QUALITY >= 90, BP >= 100000)  
+  filter(QUALITY >= 90, BP >= 500000)  
 
 # Merge the clean data with the origin
 Fra_BCF<- merge(French,Fra_BCF,by="ID")
@@ -537,6 +537,7 @@ Ita_BCF_Summary <- Ita_BCF %>%
     Total_Autosomal_BP =  1423936391,   # Constant column
     FROH = Total_ROH_BP / Total_Autosomal_BP) # FROH Calculation
 
+
 # Test significance 
 # Difference in the inbreeding coeficient
 wilcox.test(FROH ~ Origin, data = Ita_BCF_Summary)
@@ -547,7 +548,7 @@ Ita_BCF_model <- glmer(BP ~ Origin + (1 | ID),
 summary(Ita_BCF_model)
 anova(Ita_BCF_model)
 
-# Plot 
+# Box Plot 
 ggplot(Ita_BCF_Summary, aes(x = Origin, y = FROH , fill = Origin)) +
   geom_boxplot(outlier.shape = NA, alpha = 0.7) + # Boxplot to visualize distribution
   geom_jitter(width = 0.2, size = 2, alpha = 0.6, color = "black")+
@@ -557,6 +558,21 @@ ggplot(Ita_BCF_Summary, aes(x = Origin, y = FROH , fill = Origin)) +
   labs(title = "Italian Inbreeding coefficient - BCFtools", x = "Origin", y = "FROH") +
   theme_minimal()+
   theme(plot.title = element_text(hjust = 0.5))
+
+# Reorder 
+Ita_BCF_Summary$ID <- factor(Ita_BCF_Summary$ID, levels = Ita_BCF_Summary$ID[rev(order(Ita_BCF_Summary$FROH))])
+
+# Create the barplot
+ggplot(Ita_BCF_Summary, aes(y = ID, x = FROH, fill = Origin)) +
+  geom_bar(stat = "identity") +
+  labs(y = "Sample ID",
+       x = "Percentage of ROH in Genome (FROH)",
+       title = "Percentage of ROH in Genome per Sample") +
+  scale_fill_manual(values = c("Nat-ITA" = "#006837", 
+                               "Int-ITA" = "#66BD63")) +
+  theme_minimal() +
+  theme(axis.text.y = element_text(size = 10),
+        plot.title = element_text(hjust = 0.5, size = 15))
 
 # French Summary 
 Fra_BCF_Summary <- Fra_BCF %>%
@@ -587,3 +603,18 @@ ggplot(Fra_BCF_Summary, aes(x = Origin, y = FROH , fill = Origin)) +
   labs(title = "French Inbreeding coefficient - BCFtools", x = "Origin", y = "FROH") +
   theme_minimal()+
   theme(plot.title = element_text(hjust = 0.5))
+
+# Reorder 
+Fra_BCF_Summary$ID <- factor(Fra_BCF_Summary$ID, levels = Fra_BCF_Summary$ID[rev(order(Fra_BCF_Summary$FROH))])
+
+# Create the barplot
+ggplot(Fra_BCF_Summary, aes(y = ID, x = FROH, fill = Origin)) +
+  geom_bar(stat = "identity") +
+  labs(y = "Sample ID",
+       x = "Percentage of ROH in Genome (FROH)",
+       title = "Percentage of ROH in Genome per Sample") +
+  scale_fill_manual(values= c("Nat-FRA" = "#A50026", 
+                              "Int-FRA" = "#F46D43"))+
+  theme_minimal() +
+  theme(axis.text.y = element_text(size = 10),
+        plot.title = element_text(hjust = 0.5, size = 15))

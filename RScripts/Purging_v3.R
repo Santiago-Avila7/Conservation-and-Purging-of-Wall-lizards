@@ -1,7 +1,7 @@
 # PURGING 2.0 ------
 # Load important packages 
 pacman::p_load(ggplot2,openxlsx,RColorBrewer,dplyr,grid,gridExtra,ggrepel,
-               reshape2,tidyr,paletteer,ggtree,stringr,lmerTest,lme4,FSA,purr)
+               reshape2,tidyr,paletteer,ggtree,stringr,lmerTest,lme4,FSA)
 
 # All Italian ---- 
 Ita_Purging <- read.table("Data/Purging/All_italian_freq.tsv", h=T)
