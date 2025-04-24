@@ -1,7 +1,8 @@
 ######### Visualization of results ######
 ## Packages load ###
 pacman::p_load(ggplot2,openxlsx,RColorBrewer,dplyr,grid,gridExtra,ggrepel,
-               reshape2,tidyr,paletteer,ggtree,stringr,lmerTest,lme4,FSA)
+               reshape2,tidyr,paletteer,ggtree,stringr,lmerTest,lme4,FSA,
+               boot,patchwork,effsize)
 
 #### 1. POPULATION STRUCTURE ####
 
@@ -95,8 +96,8 @@ tree_data <- full_join(as_tibble(tree), Lizards, by = c("label" = "ID"))
 
 
 # 1.2.2 Plot the tree ----
-p <- ggtree(tree, layout = "circular") %<+% tree_data +  # Plot the tree with the data. ( Circular or radial, creates a easy and not super ugly display)
-  geom_tiplab(aes(color = Origin), size = 4, offset = 0.02, show.legend = F) + # Color tip labels by origin
+p <- ggtree(tree, layout = "radial") %<+% tree_data +  # Plot the tree with the data. ( Circular or radial, creates a easy and not super ugly display)
+  geom_tiplab(aes(color = Origin), size = 3, offset = 0.03, show.legend = F) + # Color tip labels by origin
   geom_tippoint(aes(color = Origin), size = 2, ) +       # Add colored points at tips
   scale_color_manual(values = c("Nat-ITA" = "#006837", 
                                 "Nat-FRA" = "#A50026", 
@@ -106,7 +107,7 @@ p <- ggtree(tree, layout = "circular") %<+% tree_data +  # Plot the tree with th
                                 "Native France", "Native Italy"))+ 
   guides(color = guide_legend (override.aes = list(size = 2),        # Make the color swatches larger
                                title = "Region of Origin")) + 
-  theme(legend.position = "right", 
+  theme(legend.position = "none", 
         legend.title = element_text(size=12),
         legend.text=element_text(size=10))
 p
@@ -211,8 +212,24 @@ ggplot(Ita_Het, aes(x = Origin, y = Observed_Het , fill = Origin)) +
   labs(title = "Whole-genome observed heterozygosity", x = "Origin", y = "Heterozygosity") +
   theme_minimal ()
 
-# Significance test 
-wilcox.test(Observed_Het ~ Origin, data = Ita_Het)
+# Stats 
+Ita_het_nat <- subset(Ita_Het, Origin == "Nat-ITA")$Observed_Het
+Ita_het_int <- subset(Ita_Het, Origin == "Int-ITA")$Observed_Het
+
+# Median difference
+Ita_Het_diff <- median(Ita_het_nat) - median(Ita_het_int)
+
+# Wilcoxon test
+Ita_Het_wilcox <- wilcox.test(Observed_Het ~ Origin, data = Ita_Het)
+
+# Cliff's delta
+Ita_het_delta <- cliff.delta(Ita_het_nat, Ita_het_int)
+
+# Output results
+cat("Wilcoxon p:", Ita_Het_wilcox$p.value, "W:",Ita_Het_wilcox$statistic, "\n")
+cat("Median difference (Nat-ITA - Int-ITA):", Ita_Het_diff, "\n")
+print(Ita_het_delta)
+
 
 # French 
 ggplot(Fra_Het, aes(x = Origin, y = Observed_Het , fill = Origin)) +
@@ -225,7 +242,62 @@ ggplot(Fra_Het, aes(x = Origin, y = Observed_Het , fill = Origin)) +
   theme_minimal() 
 
 # Significance test 
-wilcox.test(Observed_Het ~ Origin, data = Fra_Het)
+Fra_het_nat <- subset(Fra_Het, Origin == "Nat-FRA")$Observed_Het
+Fra_het_int <- subset(Fra_Het, Origin == "Int-FRA")$Observed_Het
+
+# Median difference
+Fra_Het_diff <- median(Fra_het_nat) - median(Fra_het_int)
+
+# Wilcox test
+Fra_Het_wilcox <- wilcox.test(Observed_Het ~ Origin, data = Fra_Het)
+
+# Cliff's delta
+Fra_het_delta <- cliff.delta(Fra_het_nat, Fra_het_int)
+
+# Output results
+cat("Wilcoxon p:", Fra_Het_wilcox$p.value, "W:",Fra_Het_wilcox$statistic, "\n")
+cat("Median difference (Nat-Fra - Int-Fra):", Fra_Het_diff, "\n")
+print(Fra_het_delta)
+
+# Combined plot 
+# Italian plot
+italian_plot <- ggplot(Ita_Het, aes(x = Origin, y = Observed_Het, fill = Origin)) +
+  geom_boxplot(outlier.shape = NA) +
+  scale_fill_manual(values = c("Nat-ITA" = "#006837", 
+                               "Int-ITA" = "#66BD63"),
+                    labels = c("Nat-ITA" = "Native Italian", 
+                               "Int-ITA" = "Introduced Italian")) +
+  labs(subtitle = "A",
+       x = "Origin",
+       y = "Heterozygosity") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(size = 12),
+        legend.position = "bottom")
+
+# French plot with subtitle "B"
+french_plot <- ggplot(Fra_Het, aes(x = Origin, y = Observed_Het, fill = Origin)) +
+  geom_boxplot(outlier.shape = NA) +
+  scale_fill_manual(values = c("Nat-FRA" = "#A50026", 
+                               "Int-FRA" = "#F46D43"),
+                    labels = c("Nat-FRA" = "Native French", 
+                               "Int-FRA" = "Introduced French")) +
+  labs(subtitle = "B",
+       x = "Origin",
+       y = "Heterozygosity") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(size = 12),
+        legend.position = "bottom")
+
+# Combine the plots with patchwork
+final_plot <- italian_plot + french_plot +
+  plot_layout(guides = "collect") +
+  plot_annotation(title = "Observed Heterozygosity",
+                  theme = theme(plot.title = element_text(hjust = 0.5, size = 14))) &
+  theme(legend.position = "bottom")
+
+# Display the combined plot
+print(final_plot)
+
 
 
 # 2.2 ROHs ----
@@ -244,7 +316,6 @@ Fra_ROHs<- merge(French,Fra_ROHs,by="ID")
 
 # Remove the mixed origin sample
 Fra_ROHs <- Fra_ROHs %>% filter(ID != "CW2214")
-
 
 # Distribution 
 # Italian 
@@ -411,6 +482,12 @@ Ita_BCF <- Ita_BCF %>%
     CHR == "CM014759.1" ~ "17",
     CHR == "CM014760.1" ~ "18",))
 
+# Count records per origin
+Ita_BCF %>%
+  count(Origin) # 1847 in Introduced pops, 73 in native pops 
+
+
+# French 
 Fra_BCF <- read.table("Data/PopGen/All_French_ROH_BCFtools",h=F)
 Fra_BCF <- Fra_BCF %>%
   select(-1) %>% # Remove the first column - a bunch of RG
@@ -442,8 +519,12 @@ Fra_BCF <- Fra_BCF %>%
     CHR == "CM014759.1" ~ "17",
     CHR == "CM014760.1" ~ "18",)) 
 
-# Distributions 
+# Count of records per origin 
+Fra_BCF %>%
+  count(Origin) # 1020 in introduced pops and 561 in native pops  
 
+
+# Distributions 
 ggplot(Ita_BCF, aes(x = BP, fill = Origin)) +
   geom_histogram(bins = 30, color = "black") + 
   facet_wrap(~ Origin) + 
@@ -464,28 +545,6 @@ ggplot(Fra_BCF, aes(x = BP, fill= Origin)) +
   labs(title = "French ROHs length - BCFtools",
        x = "BP",
        y = "Count") +
-  theme_minimal()+
-  theme(plot.title = element_text(hjust = 0.5))
-ggplot(Ita_BCF, aes(x = BP, fill = Origin)) +
-  geom_histogram(bins = 30, color = "black") + 
-  facet_wrap(~ Origin) + 
-  scale_fill_manual(values = c("Nat-ITA" = "#006837", 
-                               "Int-ITA" = "#66BD63")) + 
-  labs(
-    title = "Italian ROHs length - BCFtools",
-    x = "BP",
-    y = "Count") +
-  theme_minimal()+
-  theme(plot.title = element_text(hjust = 0.5))
-
-ggplot(Fra_BCF, aes(x = BP, fill= Origin)) +
-  geom_histogram(bins = 30, color = "black") + 
-  facet_wrap(~ Origin) + 
-  scale_fill_manual(values= c("Nat-FRA" = "#A50026", 
-                              "Int-FRA" = "#F46D43"))+
-  labs(title = "French ROHs length - BCFtools",
-    x = "BP",
-    y = "Count") +
   theme_minimal()+
   theme(plot.title = element_text(hjust = 0.5))
 
@@ -527,7 +586,6 @@ ggplot(Fra_BCF_chr1, aes(x=POS1, xend=POS2, y=ID, color=as.factor(Origin))) +
         plot.title = element_text(hjust = 0.5))
 
 # FROH 
-
 # Italian Summary 
 Ita_BCF_Summary <- Ita_BCF %>%
   group_by(ID,Origin) %>%
@@ -537,16 +595,51 @@ Ita_BCF_Summary <- Ita_BCF %>%
     Total_Autosomal_BP =  1423936391,   # Constant column
     FROH = Total_ROH_BP / Total_Autosomal_BP) # FROH Calculation
 
-
 # Test significance 
-# Difference in the inbreeding coeficient
-wilcox.test(FROH ~ Origin, data = Ita_BCF_Summary)
+Ita_ROH_nat <- subset(Ita_BCF_Summary, Origin == "Nat-ITA")$FROH
+Ita_ROH_int <- subset(Ita_BCF_Summary, Origin == "Int-ITA")$FROH
+
+# Median differences
+Ita_ROH_diff <- median(Ita_ROH_int) - median(Ita_ROH_nat)
+
+# Wilcoxon test
+Ita_ROH_wilcox <- wilcox.test(FROH ~ Origin, data = Ita_BCF_Summary)
+
+# Cliff's delta
+Ita_ROH_delta <- cliff.delta(Ita_ROH_int, Ita_ROH_nat)
+
+# Output results
+cat("Wilcoxon p:", Ita_ROH_wilcox$p.value, "W:",Ita_ROH_wilcox$statistic, "\n")
+cat("Median difference (Nat-ITA - Int-ITA):", Ita_ROH_diff, "\n")
+print(Ita_ROH_delta)
+
 # Length of ROHs comparison 
 Ita_BCF_model <- glmer(BP ~ Origin + (1 | ID), 
                        family = Gamma(link = "log"), 
                        data = Ita_BCF)
 summary(Ita_BCF_model)
-anova(Ita_BCF_model)
+
+# Get the proportion of the effect 
+exp(fixef(Ita_BCF_model)[-1]) #  ~ meaning 0.7X difference.
+
+# Confidence intervals 
+# Function for bootstrapping
+get_boot_ci <- function(model, term, nsim = 1000) {
+  boot_fun <- function(.) {
+    fixef(.)[term]
+  }
+  boot_ci <- bootMer(model, 
+                     FUN = boot_fun, 
+                     nsim = nsim,
+                     type = "parametric")
+  ci <- boot.ci(boot_ci, type = "perc", conf = 0.95)$percent[4:5]
+  return(exp(ci))
+}
+
+# Italian model
+boot_ci_ita <- get_boot_ci(Ita_BCF_model, "OriginNat-ITA")
+names(boot_ci_ita) <- c("Lower 95% CI", "Upper 95% CI")
+boot_ci_ita # = 0.5056920 to 0.9194861  
 
 # Box Plot 
 ggplot(Ita_BCF_Summary, aes(x = Origin, y = FROH , fill = Origin)) +
@@ -585,13 +678,39 @@ Fra_BCF_Summary <- Fra_BCF %>%
 
 # Test significance 
 # Difference in the inbreeding coeficient
-wilcox.test(FROH ~ Origin, data = Fra_BCF_Summary)
+Fra_ROH_nat <- subset(Fra_BCF_Summary, Origin == "Nat-FRA")$FROH
+Fra_ROH_int <- subset(Fra_BCF_Summary, Origin == "Int-FRA")$FROH
+
+# Median differences
+Fra_ROH_diff <- median(Fra_ROH_int) - median(Fra_ROH_nat)
+
+# Wilcoxon test
+Fra_ROH_wilcox <- wilcox.test(FROH ~ Origin, data = Fra_BCF_Summary)
+
+# Cliff's delta
+Fra_ROH_delta <- cliff.delta(Fra_ROH_int, Fra_ROH_nat)
+
+# Output results
+cat("Wilcoxon p:", Fra_ROH_wilcox$p.value, "W:",Fra_ROH_wilcox$statistic, "\n")
+cat("Median difference (Nat-Fra - Int-Fra):", Fra_ROH_diff, "\n")
+print(Fra_ROH_delta)
+
 # Length of ROHs comparison 
 Fra_BCF_model <- glmer(BP ~ Origin + (1 | ID), 
                        family = Gamma(link = "log"), 
                        data = Fra_BCF)
 summary(Fra_BCF_model)
-anova(Fra_BCF_model)
+
+# Proportion of difference  
+exp(fixef(Fra_BCF_model)[-1])
+
+# Confidence intervals 
+
+# French model
+boot_ci_fra <- get_boot_ci(Fra_BCF_model, "OriginNat-FRA")
+names(boot_ci_fra) <- c("Lower 95% CI", "Upper 95% CI")
+boot_ci_fra # = 0.5634890 to 0.8907801 
+
 
 # Plot 
 ggplot(Fra_BCF_Summary, aes(x = Origin, y = FROH , fill = Origin)) +
@@ -618,3 +737,89 @@ ggplot(Fra_BCF_Summary, aes(y = ID, x = FROH, fill = Origin)) +
   theme_minimal() +
   theme(axis.text.y = element_text(size = 10),
         plot.title = element_text(hjust = 0.5, size = 15))
+
+# Combined plots
+# Italian 
+# Boxplot
+Ita_FROH_box <- ggplot(Ita_BCF_Summary, aes(x = Origin, y = FROH, fill = Origin)) +
+  geom_boxplot(outlier.shape = NA) + 
+  scale_fill_manual(values = c("Nat-ITA" = "#006837",
+                               "Int-ITA" = "#66BD63"),
+                    labels = c("Nat-ITA" = "Native Italian", 
+                               "Int-ITA" = "Introduced Italian")) +
+  labs( subtitle = "A",
+        x = "Origin",
+        y = "FROH") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, size = 12),
+        legend.position = "bottom"  )
+
+# Barplot
+Ita_FROH_bar <- ggplot(Ita_BCF_Summary, aes(y = ID, x = FROH, fill = Origin)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = c("Nat-ITA" = "#006837", "Int-ITA" = "#66BD63"),
+                    labels = c("Nat-ITA" = "Native Italian", "Int-ITA" = "Introduced Italian")) +
+  labs( subtitle = "B",
+        y = "Sample ID",
+        x = "Percentage genome with ROH") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, size = 12),
+        axis.text.y = element_text(size = 10),  
+        legend.position = "bottom")
+
+# Combine the plots using patchwork
+Ita_FROH <- Ita_FROH_box + Ita_FROH_bar +
+  plot_layout(guides = "collect") +
+  plot_annotation(title = "ROHs Italian lineage",
+    theme = theme(plot.title = element_text(hjust = 0.5, size = 16))) &
+  theme(legend.position = "bottom")
+
+# Display the combined plot
+print(Ita_FROH)
+
+
+# French 
+# Boxplot
+Fra_FROH_box <- ggplot(Fra_BCF_Summary, aes(x = Origin, y = FROH, fill = Origin)) +
+  geom_boxplot(outlier.shape = NA) + 
+  scale_fill_manual(    values = c("Nat-FRA" = "#A50026", 
+                                   "Int-FRA" = "#F46D43"),
+                        labels = c("Nat-FRA" = "Native French", 
+                                   "Int-FRA" = "Introduced French")) +
+  labs(subtitle = "A",
+       x = "Origin",
+       y = "FROH") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, size = 12),
+        legend.position = "bottom")
+
+# Barplot 
+Fra_FROH_bar <- ggplot(Fra_BCF_Summary, aes(y = ID, x = FROH, fill = Origin)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = c("Nat-FRA" = "#A50026",
+                               "Int-FRA" = "#F46D43"),
+                    labels = c("Nat-FRA" = "Native French", 
+                               "Int-FRA" = "Introduced French")) +
+  labs(subtitle = "B",
+       y = "Sample ID",
+       x = "Percentage genome with ROH") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, size = 12),
+    axis.text.y = element_text(size = 10),
+    legend.position = "bottom")
+
+# Combine the plots using patchwork
+Fra_FROH <- Fra_FROH_box + Fra_FROH_bar +
+  plot_layout(guides = "collect") +
+  plot_annotation(title = "ROHs French lineage",
+                  theme = theme(plot.title = element_text(hjust = 0.5, size = 16))) &
+  theme(legend.position = "bottom")
+
+# Display the combined plot
+print(Fra_FROH)
+
+
+
+
+
+
