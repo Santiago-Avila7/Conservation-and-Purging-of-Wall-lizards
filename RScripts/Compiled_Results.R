@@ -301,7 +301,6 @@ print(final_plot)
 
 
 # 2.2 ROHs ----
-# No full up to date 
 
 # Load ROH data and edit table names
 Ita_ROHs <-read.table("Data/PopGen/All_Italian_ROHs_1.hom",h=T)
@@ -711,7 +710,6 @@ boot_ci_fra <- get_boot_ci(Fra_BCF_model, "OriginNat-FRA")
 names(boot_ci_fra) <- c("Lower 95% CI", "Upper 95% CI")
 boot_ci_fra # = 0.5634890 to 0.8907801 
 
-
 # Plot 
 ggplot(Fra_BCF_Summary, aes(x = Origin, y = FROH , fill = Origin)) +
   geom_boxplot(outlier.shape = NA, alpha = 0.7) + # Boxplot to visualize distribution
@@ -776,7 +774,6 @@ Ita_FROH <- Ita_FROH_box + Ita_FROH_bar +
 
 # Display the combined plot
 print(Ita_FROH)
-
 
 # French 
 # Boxplot
