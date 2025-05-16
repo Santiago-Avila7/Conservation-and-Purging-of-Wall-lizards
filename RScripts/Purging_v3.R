@@ -35,13 +35,15 @@ Rxy_Italian <- Rxy_Italian %>%
                values_to = "Rxy") %>%        # Assign values to Rxy
   mutate(Impact = str_remove(Impact, "Rxy_")) # Clean category names
 
-# Ensure Impact is a factor before statistical tests
-Rxy_Italian$Impact <- as.factor(Rxy_Italian$Impact)
-
-# Kruskal-Wallis test
-kruskal.test(Rxy ~ Impact, data = Rxy_Italian) # p-value < 2.2e-16
-# Dunn’s test for pairwise comparisons
-dunn.test(Rxy_Italian$Rxy, Rxy_Italian$Impact, method = "bonferroni")
+# Get summary of the results
+calculate_CI <- function(data) {
+  data %>%
+    group_by(Impact) %>%
+    summarise(mean_Rxy = mean(Rxy, na.rm = TRUE),
+              lower_CI = mean_Rxy - qt(0.975, df = n() - 1) * sd(Rxy) / sqrt(n()),
+              upper_CI = mean_Rxy + qt(0.975, df = n() - 1) * sd(Rxy) / sqrt(n()),
+              .groups = "drop")}
+calculate_CI(Rxy_Italian)
 
 
 # **Visualization - Boxplot**
@@ -114,10 +116,8 @@ ggplot(Rxy_French, aes(x = Rxy, fill = Impact, color = Impact)) +
 # Ensure Impact is a factor before statistical tests
 Rxy_French$Impact <- as.factor(Rxy_French$Impact)
 
-# Kruskal-Wallis test
-kruskal.test(Rxy ~ Impact, data = Rxy_French) # p-value < 2.2e-16
-# Dunn’s test for pairwise comparisons
-dunn.test(Rxy_French$Rxy, Rxy_French$Impact, method = "bonferroni")
+calculate_CI(Rxy_French)
+
 
 
 # All Native ---- 
@@ -222,87 +222,67 @@ Rxy_all <- bind_rows(lapply(freq_files, calculate_Rxy)) %>%
   mutate(Group = case_when(
     Population %in% italian_pops ~ "Italian",
     Population %in% french_pops ~ "French",
-    TRUE ~ "Native"
-  ))
+    TRUE ~ "Native" ))
 
 # ======================================================================
 # STATISTICAL ANALYSIS FUNCTIONS
 # ======================================================================
 
-run_welch_anova <- function(data) {
-  welch_result <- oneway.test(Rxy ~ Impact, data = data, var.equal = FALSE)
-  
-  if (welch_result$p.value < 0.05) {
-    gh_result <- PMCMRplus::gamesHowellTest(Rxy ~ Impact, data = data)
-    gh_tidy <- as_tibble(gh_result$p.value, rownames = "Comparison")
-  } else {
-    gh_tidy <- tibble(Comparison = "No significant differences")
-  }
-  
-  list(
-    ANOVA = broom::tidy(welch_result),
-    PostHoc = gh_tidy
-  )
-}
-
-analyze_population <- function(pop_name, full_data) {
-  pop_data <- full_data %>% 
+Rxy_anova <- function(pop_name, data) {
+  # Subset population
+  data_sub <- data %>%
     filter(Population == pop_name) %>%
     mutate(Impact = as.factor(Impact))
   
-  if (n_distinct(pop_data$Impact) < 2) {
-    return(tibble(
-      Population = pop_name,
-      Test = "Insufficient groups",
-      F.value = NA,
-      p.value = NA,
-      PostHoc = list(tibble(Note = "Need ≥2 impact categories"))
-    ))
+  # Ensure sufficient categories for ANOVA
+  if (n_distinct(data_sub$Impact) < 2) {
+    message("Skipping", pop_name, "- Not enough impact categories")
+    return(NULL)
   }
   
-  results <- run_welch_anova(pop_data)
+  # ANOVA test
+  anova_result <- aov(Rxy ~ Impact, data = data_sub)
   
-  tibble(
-    Population = pop_name,
-    Test = "Welch's ANOVA",
-    F.value = results$ANOVA$statistic,
-    p.value = results$ANOVA$p.value,
-    PostHoc = list(results$PostHoc)
-  )
+  # Tukey’s HSD post-hoc test
+  tukey_result <- TukeyHSD(anova_result)
+  
+  # Store results
+  list(Population = pop_name,
+       ANOVA_p = summary(anova_result)[[1]]["Pr(>F)"][1],
+       Tukey = tukey_result)
 }
 
-# ======================================================================
-# RUN ANALYSIS FOR ALL POPULATIONS
-# ======================================================================
+# Run for all populations
+for (pop in c(italian_pops, french_pops)) {
+  assign(paste0(pop, "_analysis"), calculate_CI(pop, Rxy_all))
+}
 
-italian_results <- do.call(rbind, lapply(italian_pops, analyze_population, full_data = Rxy_all))
-french_results <- do.call(rbind, lapply(french_pops, analyze_population, full_data = Rxy_all))
+# Get means and CIs 
+# Apply function independently for each population and store results
+italian_CI_results <- lapply(italian_pops, function(pop) {
+  calculate_CI(filter(Rxy_all, Population == pop))})
 
-all_results <- bind_rows(
-  italian_results,
-  french_results
-) %>%
-  mutate(Significant = ifelse(p.value < 0.05, "YES", "NO"))
+french_CI_results <- lapply(french_pops, function(pop) {
+  calculate_CI(filter(Rxy_all, Population == pop))})
 
+# Name the results properly
+names(italian_CI_results) <- italian_pops
+names(french_CI_results) <- french_pops
+
+# Print results separately for each population
+for (pop in italian_pops) {
+  cat("\n### Results for", pop, "###\n")
+  print(italian_CI_results[[pop]])
+}
+
+for (pop in french_pops) {
+  cat("\n### Results for", pop, "###\n")
+  print(french_CI_results[[pop]])
+}
 # ======================================================================
 # VISUALIZATION AND OUTPUT
 # ======================================================================
 
-anova_summary <- all_results %>%
-  select(Population, F.value, p.value, Significant) %>%
-  arrange(Significant, p.value)
-print(anova_summary)
-
-significant_comparisons <- all_results %>%
-  filter(Significant == "YES") %>%
-  unnest(PostHoc) %>%
-  filter(!str_detect(Comparison, "No significant"))
-
-if (nrow(significant_comparisons) > 0) {
-  print(significant_comparisons)
-} else {
-  message("No significant pairwise differences found in any population")
-}
 
 plot_rxy_distribution <- function(data, title) {
   ggplot(data, aes(x = Rxy, y = Impact, fill = Population)) +
@@ -323,3 +303,16 @@ print(plot_rxy_distribution(
   "Comparative Rxy Across French Populations"
 ))
 
+
+population_CI_results <- lapply(unique(Rxy_all$Population), function(pop) {
+  calculate_CI(Rxy_all, pop)
+})
+
+# Store results in named list
+names(population_CI_results) <- unique(Rxy_all$Population)
+
+# Print results per population
+for (pop in unique(Rxy_all$Population)) {
+  cat("\n### Results for", pop, "###\n")
+  print(population_CI_results[[pop]])
+}

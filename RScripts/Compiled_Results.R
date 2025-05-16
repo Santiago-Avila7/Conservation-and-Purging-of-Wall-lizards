@@ -90,28 +90,49 @@ grid.arrange(p1,p2, nrow = 1, ncol = 2,
 #Load the tree data
 tree <- read.tree("Data/PopGen/All_Origins.treefile")
 
-# Merge the tree data with the Lizard names and origin. 
-tree_data <- full_join(as_tibble(tree), Lizards, by = c("label" = "ID"))
+# Convert tree to tibble format
+tree_data <- as_tibble(tree)
 
+# Get correct node numbers for internal nodes
+n_tips <- length(tree$tip.label)
+internal_nodes <- (n_tips + 1):(n_tips + tree$Nnode)
 
+# Create bootstrap data frame with proper node numbering
+bootstrap_data <- data.frame(node = internal_nodes,
+                             bootstrap = as.numeric(tree$node.label))# Convert to numeric
 
-# 1.2.2 Plot the tree ----
-p <- ggtree(tree, layout = "radial") %<+% tree_data +  # Plot the tree with the data. ( Circular or radial, creates a easy and not super ugly display)
-  geom_tiplab(aes(color = Origin), size = 3, offset = 0.03, show.legend = F) + # Color tip labels by origin
-  geom_tippoint(aes(color = Origin), size = 2, ) +       # Add colored points at tips
-  scale_color_manual(values = c("Nat-ITA" = "#006837", 
-                                "Nat-FRA" = "#A50026", 
-                                "Int-ITA" = "#66BD63", 
-                                "Int-FRA" = "#F46D43"),
-                     labels = c("Introduced France", "Introduced Italy", 
-                                "Native France", "Native Italy"))+ 
-  guides(color = guide_legend (override.aes = list(size = 2),        # Make the color swatches larger
-                               title = "Region of Origin")) + 
-  theme(legend.position = "none", 
-        legend.title = element_text(size=12),
-        legend.text=element_text(size=10))
-p
+# Merge with main tree data
+tree_data <- tree_data %>% 
+  left_join(bootstrap_data, by = "node") %>% 
+  # Merge with lizard metadata (tips only)
+  left_join(Lizards, by = c("label" = "ID"))
 
+# Create the tree plot
+p <- ggtree(tree, layout = "radial") %<+% tree_data +
+  geom_tiplab2(aes(color = Origin), size = 3, offset = 0.03, align = TRUE, show.legend = FALSE) +
+  geom_tippoint(aes(color = Origin), size = 2) +
+  geom_nodelab(aes(label = round(bootstrap)), 
+               color = "black", 
+               hjust = -0.1, 
+               size = 2.5, 
+               na.rm = TRUE,) +
+  scale_color_manual(values = c(
+    "Nat-ITA" = "#006837", 
+    "Nat-FRA" = "#A50026", 
+    "Int-ITA" = "#66BD63", 
+    "Int-FRA" = "#F46D43"
+  ),
+  labels = c("Introduced France", "Introduced Italy", 
+             "Native France", "Native Italy")) +
+  theme_minimal() +
+  theme(
+    axis.text = element_blank(),
+    axis.ticks = element_blank(),
+    legend.position = "bottom",
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10)  )
+
+print(p)
 
 ## 3. ADMIXTURE -----
 
@@ -302,6 +323,7 @@ print(final_plot)
 
 # 2.2 ROHs ----
 
+# 2.2.1 PLINK ----
 # Load ROH data and edit table names
 Ita_ROHs <-read.table("Data/PopGen/All_Italian_ROHs_1.hom",h=T)
 Fra_ROHs <- read.table("Data/PopGen/All_French_ROHs_1.hom",h=T)
@@ -447,7 +469,7 @@ ggplot(Fra_Sum_ROH, aes(x = Origin, y = FROH , fill = Origin)) +
   theme_minimal()+
   theme(plot.title = element_text(hjust = 0.5))
 
-# BCF tools.
+# 2.2.2 BCF tools ----
 Ita_BCF <- read.table("Data/PopGen/All_Italian_ROH_BCFtools",h=F)
 
 # Naming the columns and filtering for quality (Phred score) and minimum length (500k)
@@ -587,12 +609,15 @@ ggplot(Fra_BCF_chr1, aes(x=POS1, xend=POS2, y=ID, color=as.factor(Origin))) +
 # FROH 
 # Italian Summary 
 Ita_BCF_Summary <- Ita_BCF %>%
-  group_by(ID,Origin) %>%
+  group_by(ID, Origin) %>%
   summarise(
     Total_ROH_BP = sum(BP),  # Total length of ROHs
     Avg_ROH_BP = mean(BP),   # Average ROH length
-    Total_Autosomal_BP =  1423936391,   # Constant column
-    FROH = Total_ROH_BP / Total_Autosomal_BP) # FROH Calculation
+    ROH_Count = n(),         # Count of ROH records per sample
+    Total_Autosomal_BP = 1423936391,  # Constant column
+    FROH = Total_ROH_BP / Total_Autosomal_BP, # FROH Calculation
+    .groups = "drop")
+
 
 # Test significance 
 Ita_ROH_nat <- subset(Ita_BCF_Summary, Origin == "Nat-ITA")$FROH
@@ -640,6 +665,7 @@ boot_ci_ita <- get_boot_ci(Ita_BCF_model, "OriginNat-ITA")
 names(boot_ci_ita) <- c("Lower 95% CI", "Upper 95% CI")
 boot_ci_ita # = 0.5056920 to 0.9194861  
 
+
 # Box Plot 
 ggplot(Ita_BCF_Summary, aes(x = Origin, y = FROH , fill = Origin)) +
   geom_boxplot(outlier.shape = NA, alpha = 0.7) + # Boxplot to visualize distribution
@@ -652,14 +678,14 @@ ggplot(Ita_BCF_Summary, aes(x = Origin, y = FROH , fill = Origin)) +
   theme(plot.title = element_text(hjust = 0.5))
 
 # Reorder 
-Ita_BCF_Summary$ID <- factor(Ita_BCF_Summary$ID, levels = Ita_BCF_Summary$ID[rev(order(Ita_BCF_Summary$FROH))])
+Ita_BCF_Summary$ID <- factor(Ita_BCF_Summary$ID, levels = Ita_BCF_Summary$ID[rev(order(Ita_BCF_Summary$ROH_Count))])
 
 # Create the barplot
-ggplot(Ita_BCF_Summary, aes(y = ID, x = FROH, fill = Origin)) +
+ggplot(Ita_BCF_Summary, aes(y = ID, x = ROH_Count, fill = Origin)) +
   geom_bar(stat = "identity") +
   labs(y = "Sample ID",
-       x = "Percentage of ROH in Genome (FROH)",
-       title = "Percentage of ROH in Genome per Sample") +
+       x = "Number of ROHs",
+       title = "Total ROHs per Sample") +
   scale_fill_manual(values = c("Nat-ITA" = "#006837", 
                                "Int-ITA" = "#66BD63")) +
   theme_minimal() +
@@ -672,6 +698,7 @@ Fra_BCF_Summary <- Fra_BCF %>%
   summarise(
     Total_ROH_BP = sum(BP),  # Total length of ROHs
     Avg_ROH_BP = mean(BP),   # Average ROH length
+    ROH_Count = n(), 
     Total_Autosomal_BP =  1423936391,   # Constant column
     FROH = Total_ROH_BP / Total_Autosomal_BP) 
 
@@ -704,7 +731,6 @@ summary(Fra_BCF_model)
 exp(fixef(Fra_BCF_model)[-1])
 
 # Confidence intervals 
-
 # French model
 boot_ci_fra <- get_boot_ci(Fra_BCF_model, "OriginNat-FRA")
 names(boot_ci_fra) <- c("Lower 95% CI", "Upper 95% CI")
@@ -722,19 +748,20 @@ ggplot(Fra_BCF_Summary, aes(x = Origin, y = FROH , fill = Origin)) +
   theme(plot.title = element_text(hjust = 0.5))
 
 # Reorder 
-Fra_BCF_Summary$ID <- factor(Fra_BCF_Summary$ID, levels = Fra_BCF_Summary$ID[rev(order(Fra_BCF_Summary$FROH))])
+Fra_BCF_Summary$ID <- factor(Fra_BCF_Summary$ID, levels = Fra_BCF_Summary$ID[rev(order(Fra_BCF_Summary$ROH_Count))])
 
 # Create the barplot
-ggplot(Fra_BCF_Summary, aes(y = ID, x = FROH, fill = Origin)) +
+ggplot(Fra_BCF_Summary, aes(y = ID, x = ROH_Count, fill = Origin)) +
   geom_bar(stat = "identity") +
   labs(y = "Sample ID",
-       x = "Percentage of ROH in Genome (FROH)",
-       title = "Percentage of ROH in Genome per Sample") +
+       x = "Number of ROHs",
+       title = "Total ROHs per Sample") +
   scale_fill_manual(values= c("Nat-FRA" = "#A50026", 
                               "Int-FRA" = "#F46D43"))+
   theme_minimal() +
   theme(axis.text.y = element_text(size = 10),
         plot.title = element_text(hjust = 0.5, size = 15))
+
 
 # Combined plots
 # Italian 
