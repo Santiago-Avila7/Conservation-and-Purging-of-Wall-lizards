@@ -35,15 +35,20 @@ Rxy_Italian <- Rxy_Italian %>%
                values_to = "Rxy") %>%        # Assign values to Rxy
   mutate(Impact = str_remove(Impact, "Rxy_")) # Clean category names
 
-# Get summary of the results
-calculate_CI <- function(data) {
+# Get summary of the results after jackknifing 
+calculate_minmax <- function(data) { 
   data %>%
-    group_by(Impact) %>%
-    summarise(mean_Rxy = mean(Rxy, na.rm = TRUE),
-              lower_CI = mean_Rxy - qt(0.975, df = n() - 1) * sd(Rxy) / sqrt(n()),
-              upper_CI = mean_Rxy + qt(0.975, df = n() - 1) * sd(Rxy) / sqrt(n()),
-              .groups = "drop")}
-calculate_CI(Rxy_Italian)
+    group_by(Impact) %>% 
+    summarise(
+      mean_Rxy = mean(Rxy, na.rm = TRUE), #Retrieve mean value 
+      min_Rxy = min(Rxy, na.rm = TRUE), #Retrieve minimum value
+      max_Rxy = max(Rxy, na.rm = TRUE), #Retrieve maximum value 
+      .groups = "drop"
+    ) %>%
+    mutate(across(where(is.numeric), 
+                  ~ formatC(., format = "f", digits = 3)))}
+
+calculate_minmax(Rxy_Italian)
 
 
 # **Visualization - Boxplot**
@@ -116,8 +121,7 @@ ggplot(Rxy_French, aes(x = Rxy, fill = Impact, color = Impact)) +
 # Ensure Impact is a factor before statistical tests
 Rxy_French$Impact <- as.factor(Rxy_French$Impact)
 
-calculate_CI(Rxy_French)
-
+calculate_minmax(Rxy_French)
 
 
 # All Native ---- 
@@ -227,92 +231,65 @@ Rxy_all <- bind_rows(lapply(freq_files, calculate_Rxy)) %>%
 # ======================================================================
 # STATISTICAL ANALYSIS FUNCTIONS
 # ======================================================================
-
-Rxy_anova <- function(pop_name, data) {
-  # Subset population
-  data_sub <- data %>%
-    filter(Population == pop_name) %>%
-    mutate(Impact = as.factor(Impact))
-  
-  # Ensure sufficient categories for ANOVA
-  if (n_distinct(data_sub$Impact) < 2) {
-    message("Skipping", pop_name, "- Not enough impact categories")
-    return(NULL)
-  }
-  
-  # ANOVA test
-  anova_result <- aov(Rxy ~ Impact, data = data_sub)
-  
-  # Tukey’s HSD post-hoc test
-  tukey_result <- TukeyHSD(anova_result)
-  
-  # Store results
-  list(Population = pop_name,
-       ANOVA_p = summary(anova_result)[[1]]["Pr(>F)"][1],
-       Tukey = tukey_result)
-}
-
-# Run for all populations
-for (pop in c(italian_pops, french_pops)) {
-  assign(paste0(pop, "_analysis"), calculate_CI(pop, Rxy_all))
-}
-
-# Get means and CIs 
-# Apply function independently for each population and store results
-italian_CI_results <- lapply(italian_pops, function(pop) {
-  calculate_CI(filter(Rxy_all, Population == pop))})
-
-french_CI_results <- lapply(french_pops, function(pop) {
-  calculate_CI(filter(Rxy_all, Population == pop))})
-
-# Name the results properly
-names(italian_CI_results) <- italian_pops
-names(french_CI_results) <- french_pops
-
-# Print results separately for each population
-for (pop in italian_pops) {
-  cat("\n### Results for", pop, "###\n")
-  print(italian_CI_results[[pop]])
-}
-
-for (pop in french_pops) {
-  cat("\n### Results for", pop, "###\n")
-  print(french_CI_results[[pop]])
-}
-# ======================================================================
-# VISUALIZATION AND OUTPUT
-# ======================================================================
-
-
-plot_rxy_distribution <- function(data, title) {
-  ggplot(data, aes(x = Rxy, y = Impact, fill = Population)) +
-    geom_boxplot(outlier.shape = NA, alpha = 0.6) +
-    facet_wrap(~Population, nrow = 2) +
-    theme_minimal() +
-    scale_x_continuous(limits = c(0.9, 1.1)) +
-    labs(title = title, x = "Rxy", y = NULL)
-}
-
-print(plot_rxy_distribution(
-  filter(Rxy_all, Group == "Italian"),
-  "Comparative Rxy Across Italian Populations"
-))
-
-print(plot_rxy_distribution(
-  filter(Rxy_all, Group == "French"),
-  "Comparative Rxy Across French Populations"
-))
-
-
-population_CI_results <- lapply(unique(Rxy_all$Population), function(pop) {
-  calculate_CI(Rxy_all, pop)
+population_results <- lapply(unique(Rxy_all$Population), function(pop) {
+  Rxy_all %>%
+    filter(Population == pop) %>%
+    calculate_minmax() %>%
+    mutate(Population = pop) %>%
+    select(Population, everything())
 })
 
-# Store results in named list
-names(population_CI_results) <- unique(Rxy_all$Population)
+# Name results properly
+names(population_results) <- unique(Rxy_all$Population)
 
-# Print results per population
-for (pop in unique(Rxy_all$Population)) {
-  cat("\n### Results for", pop, "###\n")
-  print(population_CI_results[[pop]])
+# Print formatted results
+for (pop in names(population_results)) {
+  cat("\n=== Results for", pop, "===\n")
+  print(as_tibble(population_results[[pop]]))
 }
+
+
+# ======================================================================
+# VISUALIZATION FOR EACH POPULATION
+# ======================================================================
+
+# Function to create a boxplot panel by population
+plot_rxy_distribution <- function(data, title) {
+  ggplot(data, aes(x = Rxy, y = Impact, fill = Impact)) +
+    geom_boxplot(outlier.shape = NA, alpha = 0.6) +
+    facet_wrap(~ Population, nrow = 2) +
+    theme_minimal() +
+    scale_x_continuous(limits = c(0.9, 1.1)) +
+    labs(title = title, x = "Rxy", y = "Impact Category")
+}
+
+# Create panels for Italian and French populations
+boxplot_Italian <- plot_rxy_distribution(filter(Rxy_all, Group == "Italian"),
+                                         "Comparative Rxy Across Italian Populations")
+boxplot_French  <- plot_rxy_distribution(filter(Rxy_all, Group == "French"),
+                                         "Comparative Rxy Across French Populations")
+
+# Print the boxplot panels
+print(boxplot_Italian)
+print(boxplot_French)
+
+# Function to create a density plot panel by population
+plot_rxy_density <- function(data, title) {
+  ggplot(data, aes(x = Rxy, fill = Population, color = Population)) +
+    geom_density(alpha = 0.5) +
+    facet_wrap(~ Population, nrow = 2) +
+    theme_minimal() +
+    scale_x_continuous(limits = c(0.9, 1.1)) +
+    labs(title = title, x = "Rxy", y = "Density")
+}
+
+# Create panels for Italian and French populations
+density_Italian <- plot_rxy_density(filter(Rxy_all, Group == "Italian"),
+                                    "Distribution of Rxy Across Italian Populations")
+density_French  <- plot_rxy_density(filter(Rxy_all, Group == "French"),
+                                    "Distribution of Rxy Across French Populations")
+
+# Print the density plot panels
+print(density_Italian)
+print(density_French)
+

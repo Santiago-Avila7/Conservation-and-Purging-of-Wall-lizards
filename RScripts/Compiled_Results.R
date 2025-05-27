@@ -33,55 +33,48 @@ evec5.pc <- round(eval[5,1]/sum(eval)*100,digits=2)
 pca_data <- merge(evec, Lizards, by = "ID")
 
 # 1.1.2 Plots including individual names and origin ----
-p1<- ggplot(pca_data, aes(x = PC1, y = PC2, color = Origin)) +
+p1 <- ggplot(pca_data, aes(x = PC1, y = PC2, color = Origin)) +
   geom_point(size = 5) +
   labs(x = paste("PC1 (", evec1.pc, "%)", sep = ""),
        y = paste("PC2 (", evec2.pc, "%)", sep = "")) +
-  scale_color_manual(values = c("Nat-ITA" = "#006837", 
-                                "Nat-FRA" = "#A50026", 
-                                "Int-ITA" = "#66BD63", 
-                                "Int-FRA" = "#F46D43")) +
-  theme_minimal()+
-  theme(legend.position = "none", axis.title = element_text(size=20))
+  scale_color_manual(
+    values = c("Nat-ITA" = "#006837", 
+               "Nat-FRA" = "#A50026", 
+               "Int-ITA" = "#66BD63", 
+               "Int-FRA" = "#F46D43"),
+    labels = c("Nat-ITA" = "Native Italian", 
+               "Nat-FRA" = "Native French", 
+               "Int-ITA" = "Introduced Italian", 
+               "Int-FRA" = "Introduced French")) +
+  labs(subtitle = "A") +
+  theme_minimal() +
+  theme(legend.position = "bottom", axis.title = element_text(size = 12))
 
-
-p2<- ggplot(pca_data, aes(x = PC1, y = PC3, color = Origin)) +
+# Create p2 without legend but updated labels
+p2 <- ggplot(pca_data, aes(x = PC1, y = PC3, color = Origin)) +
   geom_point(size = 5) +
   labs(x = paste("PC1 (", evec1.pc, "%)", sep = ""),
        y = paste("PC3 (", evec3.pc, "%)", sep = "")) +
-  scale_color_manual(values = c("Nat-ITA" = "#006837", 
-                                "Nat-FRA" = "#A50026", 
-                                "Int-ITA" = "#66BD63", 
-                                "Int-FRA" = "#F46D43")) +
- theme_minimal()+
-  theme(legend.position = "none", axis.title = element_text(size=20))
+  scale_color_manual(
+    values = c("Nat-ITA" = "#006837", 
+               "Nat-FRA" = "#A50026", 
+               "Int-ITA" = "#66BD63", 
+               "Int-FRA" = "#F46D43"),
+    labels = c("Nat-ITA" = "Native Italian", 
+               "Nat-FRA" = "Native French", 
+               "Int-ITA" = "Introduced Italian", 
+               "Int-FRA" = "Introduced French")) +
+  labs(subtitle = "B") +
+  theme_minimal() +
+  theme(legend.position = "none", axis.title = element_text(size = 12))
 
-p3<- ggplot(pca_data, aes(x = PC1, y = PC4, color = Origin)) +
-  geom_point(size = 3) +
-  labs(x = paste("PC1 (", evec1.pc, "%)", sep = ""),
-       y = paste("PC4 (", evec4.pc, "%)", sep = "")) +
-  scale_color_manual(values = c("Nat-ITA" = "#006837", 
-                                "Nat-FRA" = "#A50026", 
-                                "Int-ITA" = "#66BD63", 
-                                "Int-FRA" = "#F46D43")) +
-  geom_text_repel(aes(label = ID), size = 3, max.overlaps = 20) +
-  theme_minimal()+
+# Combine the plots with a shared legend and centered title
+PCA_plot <- p1 + p2 + 
+  plot_layout(guides = "collect") + 
+  plot_annotation(theme = theme(plot.title = element_text(hjust = 0.5, size = 15))) &
   theme(legend.position = "bottom")
 
-p4<- ggplot(pca_data, aes(x = PC1, y = PC5, color = Origin)) +
-  geom_point(size = 3) +
-  labs(x = paste("PC1 (", evec1.pc, "%)", sep = ""),
-       y = paste("PC5 (", evec5.pc, "%)", sep = "")) +
-  scale_color_manual(values = c("Nat-ITA" = "#006837", 
-                                "Nat-FRA" = "#A50026", 
-                                "Int-ITA" = "#66BD63", 
-                                "Int-FRA" = "#F46D43")) +
-  geom_text_repel(aes(label = ID), size = 3, max.overlaps = 20) +
-  theme_minimal()+
-  theme(legend.position = "bottom")
-
-grid.arrange(p1,p2, nrow = 1, ncol = 2,
-             top = textGrob("PCA", gp = gpar(fontsize = 30)))
+print(PCA_plot)
 
 
 ## 1.2. TREE ----
@@ -108,31 +101,29 @@ tree_data <- tree_data %>%
   left_join(Lizards, by = c("label" = "ID"))
 
 # Create the tree plot
-p <- ggtree(tree, layout = "radial") %<+% tree_data +
+treeplot <- ggtree(tree, layout = "radial") %<+% tree_data +
   geom_tiplab2(aes(color = Origin), size = 3, offset = 0.03, align = TRUE, show.legend = FALSE) +
   geom_tippoint(aes(color = Origin), size = 2) +
   geom_nodelab(aes(label = round(bootstrap)), 
                color = "black", 
-               hjust = -0.1, 
-               size = 2.5, 
+               hjust = -0.05,
+               size = 2, 
                na.rm = TRUE,) +
-  scale_color_manual(values = c(
-    "Nat-ITA" = "#006837", 
-    "Nat-FRA" = "#A50026", 
-    "Int-ITA" = "#66BD63", 
-    "Int-FRA" = "#F46D43"
-  ),
-  labels = c("Introduced France", "Introduced Italy", 
-             "Native France", "Native Italy")) +
+  scale_color_manual(values = c("Nat-ITA" = "#006837", 
+                                "Nat-FRA" = "#A50026", 
+                                "Int-ITA" = "#66BD63", 
+                                "Int-FRA" = "#F46D43"),
+                     labels = c("Introduced France", "Introduced Italy", 
+                                "Native France", "Native Italy")) +
   theme_minimal() +
-  theme(
-    axis.text = element_blank(),
+  theme(axis.text = element_blank(),
     axis.ticks = element_blank(),
-    legend.position = "bottom",
-    legend.title = element_text(size = 12),
+    legend.position = "right",
+    legend.title = element_text(size = 10),
     legend.text = element_text(size = 10)  )
 
-print(p)
+print(treeplot)
+
 
 ## 3. ADMIXTURE -----
 
@@ -288,6 +279,8 @@ italian_plot <- ggplot(Ita_Het, aes(x = Origin, y = Observed_Het, fill = Origin)
                                "Int-ITA" = "#66BD63"),
                     labels = c("Nat-ITA" = "Native Italian", 
                                "Int-ITA" = "Introduced Italian")) +
+  scale_x_discrete(
+    labels = c("Nat-ITA" = "Native Italian", "Int-ITA" = "Introduced Italian"))
   labs(subtitle = "A",
        x = "Origin",
        y = "Heterozygosity") +
@@ -295,13 +288,15 @@ italian_plot <- ggplot(Ita_Het, aes(x = Origin, y = Observed_Het, fill = Origin)
   theme(plot.subtitle = element_text(size = 12),
         legend.position = "bottom")
 
-# French plot with subtitle "B"
+# French plot
 french_plot <- ggplot(Fra_Het, aes(x = Origin, y = Observed_Het, fill = Origin)) +
   geom_boxplot(outlier.shape = NA) +
   scale_fill_manual(values = c("Nat-FRA" = "#A50026", 
                                "Int-FRA" = "#F46D43"),
                     labels = c("Nat-FRA" = "Native French", 
                                "Int-FRA" = "Introduced French")) +
+  scale_x_discrete(
+    labels = c("Nat-FRA" = "Native French", "Int-FRA" = "Introduced French"))
   labs(subtitle = "B",
        x = "Origin",
        y = "Heterozygosity") +
@@ -309,167 +304,17 @@ french_plot <- ggplot(Fra_Het, aes(x = Origin, y = Observed_Het, fill = Origin))
   theme(plot.subtitle = element_text(size = 12),
         legend.position = "bottom")
 
-# Combine the plots with patchwork
+# Combine the plots
 final_plot <- italian_plot + french_plot +
-  plot_layout(guides = "collect") +
-  plot_annotation(title = "Observed Heterozygosity",
-                  theme = theme(plot.title = element_text(hjust = 0.5, size = 14))) &
+  plot_layout(guides = "collect") &
   theme(legend.position = "bottom")
 
 # Display the combined plot
 print(final_plot)
 
 
-
 # 2.2 ROHs ----
-
-# 2.2.1 PLINK ----
-# Load ROH data and edit table names
-Ita_ROHs <-read.table("Data/PopGen/All_Italian_ROHs_1.hom",h=T)
-Fra_ROHs <- read.table("Data/PopGen/All_French_ROHs_1.hom",h=T)
-Ita_ROHs <- Ita_ROHs %>% select(-FID)
-Ita_ROHs <- Ita_ROHs %>% rename(ID = 1)
-Fra_ROHs <- Fra_ROHs %>% select(-FID)
-Fra_ROHs <- Fra_ROHs %>% rename(ID = 1)
-
-Ita_ROHs<- merge(Italian,Ita_ROHs,by="ID")
-Fra_ROHs<- merge(French,Fra_ROHs,by="ID")
-
-# Remove the mixed origin sample
-Fra_ROHs <- Fra_ROHs %>% filter(ID != "CW2214")
-
-# Distribution 
-# Italian 
-ggplot(Ita_ROHs, aes(x = KB, fill = Origin)) +
-  geom_histogram(bins = 30, color = "black") + 
-  facet_wrap(~ Origin) + 
-  scale_fill_manual(values = c("Nat-ITA" = "#006837", 
-                               "Int-ITA" = "#66BD63")) + 
-  labs(title = "Italian ROHs length - PLINK",
-       x = "KB",
-       y = "Count") +
-  theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5))
-# French 
-ggplot(Fra_ROHs, aes(x = KB, fill= Origin)) +
-  geom_histogram(bins = 30, color = "black") + 
-  facet_wrap(~ Origin) + 
-  scale_fill_manual(values= c("Nat-FRA" = "#A50026", 
-                              "Int-FRA" = "#F46D43"))+
-  labs( title = "French ROHs length - PLINK",
-        x = "KB",
-        y = "Count")+
-  theme_minimal()+
-  theme(plot.title = element_text(hjust = 0.5))
-
-# Distribution in chr 1 
-Ita_ROHs <- Ita_ROHs %>%
-  mutate(CHR = factor(CHR, levels = sort(as.numeric(as.character(unique(CHR))))))
-Fra_ROHs <- Fra_ROHs %>%
-  mutate(CHR = factor(CHR, levels = sort(as.numeric(as.character(unique(CHR))))))
-
-# Filter for Chromosome 1
-Ita_ROHs_chr1 <- Ita_ROHs %>% filter(CHR == 1)
-
-# Plot only Chr 1
-ggplot(Ita_ROHs_chr1, aes(x=POS1, xend=POS2, y=ID, color=as.factor(Origin))) +
-  geom_segment(aes(yend=ID), linewidth =3) +  
-  scale_color_manual(values= c("Nat-ITA" = "#006837", "Int-ITA" = "#66BD63")) +
-  theme_minimal() +
-  labs(x="Genomic Position", y="Sample", 
-       title="Italian ROH Regions for Chromosome 1 - PLINK", 
-       color="Origin") +
-  theme(strip.text = element_text(size=12), 
-        axis.text.y = element_text(size=8),
-        plot.title = element_text(hjust = 0.5))
-
-# Filter for Chromosome 1
-Fra_ROHs_chr1 <- Fra_ROHs %>% filter(CHR == 1)
-
-# Plot only Chr 1
-ggplot(Fra_ROHs_chr1, aes(x=POS1, xend=POS2, y=ID, color=as.factor(Origin))) +
-  geom_segment(aes(yend=ID), linewidth =3) +  
-  scale_color_manual(values= c("Nat-FRA" = "#A50026","Int-FRA" = "#F46D43")) +
-  theme_minimal() +
-  labs(x="Genomic Position", y="Sample", 
-       title="French ROH Regions for Chromosome 1 - PLINK", 
-       color="Origin") +
-  theme(strip.text = element_text(size=12), 
-        axis.text.y = element_text(size=8),
-        plot.title = element_text(hjust = 0.5))
-
-# FROH 
-# Italian
-Ita_Sum_ROH <- read.table("Data/PopGen/All_Italian_ROHs_1.hom.indiv",h=T)
-Ita_Sum_ROH <- Ita_Sum_ROH %>% select(-FID)
-Ita_Sum_ROH <- Ita_Sum_ROH %>% rename(ID = 1)
-
-Ita_Sum_ROH<- merge(Italian,Ita_Sum_ROH,by="ID")
-
-# Calculation of FROH 
-# Convert KB to BP
-Ita_Sum_ROH$Total_ROH_BP <- Ita_Sum_ROH$KB * 1000
-Ita_Sum_ROH$Total_Autosomal_BP <- 1423936391  # Total autosomal sites based on the sum of chrs (NCBI) 
-# Calculate FROH per individual
-Ita_Sum_ROH$FROH <- Ita_Sum_ROH$Total_ROH_BP / Ita_Sum_ROH$Total_Autosomal_BP
-
-# Test significance 
-# Difference in the inbreeding coeficient
-wilcox.test(FROH ~ Origin, data = Ita_Sum_ROH)
-# Length of ROHs comparison 
-Ita_model <- glmer(KB ~ Origin + (1 | ID), 
-                   family = Gamma(link = "log"), 
-                   data = Ita_ROHs)
-summary(Ita_model)
-anova(Ita_model)
-
-# Plot FROH 
-ggplot(Ita_Sum_ROH, aes(x = Origin, y = FROH , fill = Origin)) +
-  geom_boxplot(outlier.shape = NA, alpha = 0.7) + # Boxplot to visualize distribution
-  geom_jitter(width = 0.2, size = 2, alpha = 0.6, color = "black")+
-  scale_fill_manual(values= c("Nat-ITA" = "#006837",
-                              "Int-ITA" = "#66BD63")) +
-  geom_text_repel(aes(label = ID), size = 3, max.overlaps = 20) +
-  labs(title = "Italian Inbreeding coefficient - PLINK", x = "Origin", y = "FROH") +
-  theme_minimal()+
-  theme(plot.title = element_text(hjust = 0.5))
-
-# French 
-Fra_Sum_ROH <- read.table("Data/PopGen/All_French_ROHs_1.hom.indiv",h=T)
-Fra_Sum_ROH <- Fra_Sum_ROH %>% select(-FID)
-Fra_Sum_ROH <- Fra_Sum_ROH %>% rename(ID = 1)
-
-Fra_Sum_ROH<- merge(French,Fra_Sum_ROH,by="ID")
-Fra_Sum_ROH <- Fra_Sum_ROH %>% filter(ID != "CW2214")
-# Calculation of FROH 
-# Convert KB to BP
-Fra_Sum_ROH$Total_ROH_BP <- Fra_Sum_ROH$KB * 1000
-Fra_Sum_ROH$Total_Autosomal_BP <- 1423936391  # Total record in the VCF 
-# Calculate FROH per individual
-Fra_Sum_ROH$FROH <- Fra_Sum_ROH$Total_ROH_BP / Fra_Sum_ROH$Total_Autosomal_BP
-
-# Test significance 
-# Difference in the inbreeding coeficient
-wilcox.test(FROH ~ Origin, data = Fra_Sum_ROH)
-# Length of ROHs comparison 
-Fra_model <- glmer(KB ~ Origin + (1 | ID), 
-                   family = Gamma(link = "log"), 
-                   data = Fra_ROHs)
-summary(Fra_model)
-anova(Fra_model)
-
-# Plot FROH 
-ggplot(Fra_Sum_ROH, aes(x = Origin, y = FROH , fill = Origin)) +
-  geom_boxplot(outlier.shape = NA, alpha = 0.7) + # Boxplot to visualize distribution
-  geom_jitter(width = 0.2, size = 2, alpha = 0.6, color = "black")+
-  scale_fill_manual(values= c("Nat-FRA" = "#A50026", 
-                              "Int-FRA" = "#F46D43"))+
-  geom_text_repel(aes(label = ID), size = 3, max.overlaps = 20) +
-  labs(title = "French Inbreeding coefficient - PLINK", x = "Origin", y = "FROH") +
-  theme_minimal()+
-  theme(plot.title = element_text(hjust = 0.5))
-
-# 2.2.2 BCF tools ----
+# 2.2.1 BCF tools ----
 Ita_BCF <- read.table("Data/PopGen/All_Italian_ROH_BCFtools",h=F)
 
 # Naming the columns and filtering for quality (Phred score) and minimum length (500k)
@@ -764,85 +609,280 @@ ggplot(Fra_BCF_Summary, aes(y = ID, x = ROH_Count, fill = Origin)) +
 
 
 # Combined plots
-# Italian 
+# Italian
 # Boxplot
 Ita_FROH_box <- ggplot(Ita_BCF_Summary, aes(x = Origin, y = FROH, fill = Origin)) +
   geom_boxplot(outlier.shape = NA) + 
-  scale_fill_manual(values = c("Nat-ITA" = "#006837",
-                               "Int-ITA" = "#66BD63"),
-                    labels = c("Nat-ITA" = "Native Italian", 
-                               "Int-ITA" = "Introduced Italian")) +
-  labs( subtitle = "A",
-        x = "Origin",
-        y = "FROH") +
-  theme_minimal() +
-  theme(plot.subtitle = element_text(hjust = 0.5, size = 12),
-        legend.position = "bottom"  )
-
-# Barplot
-Ita_FROH_bar <- ggplot(Ita_BCF_Summary, aes(y = ID, x = FROH, fill = Origin)) +
-  geom_bar(stat = "identity") +
   scale_fill_manual(values = c("Nat-ITA" = "#006837", "Int-ITA" = "#66BD63"),
-                    labels = c("Nat-ITA" = "Native Italian", "Int-ITA" = "Introduced Italian")) +
-  labs( subtitle = "B",
-        y = "Sample ID",
-        x = "Percentage genome with ROH") +
-  theme_minimal() +
-  theme(plot.subtitle = element_text(hjust = 0.5, size = 12),
-        axis.text.y = element_text(size = 10),  
-        legend.position = "bottom")
-
-# Combine the plots using patchwork
-Ita_FROH <- Ita_FROH_box + Ita_FROH_bar +
-  plot_layout(guides = "collect") +
-  plot_annotation(title = "ROHs Italian lineage",
-    theme = theme(plot.title = element_text(hjust = 0.5, size = 16))) &
-  theme(legend.position = "bottom")
-
-# Display the combined plot
-print(Ita_FROH)
-
-# French 
-# Boxplot
-Fra_FROH_box <- ggplot(Fra_BCF_Summary, aes(x = Origin, y = FROH, fill = Origin)) +
-  geom_boxplot(outlier.shape = NA) + 
-  scale_fill_manual(    values = c("Nat-FRA" = "#A50026", 
-                                   "Int-FRA" = "#F46D43"),
-                        labels = c("Nat-FRA" = "Native French", 
-                                   "Int-FRA" = "Introduced French")) +
+    labels = c("Nat-ITA" = "Native Italian", "Int-ITA" = "Introduced Italian")) +
+  scale_x_discrete(
+    labels = c("Nat-ITA" = "Native Italian", "Int-ITA" = "Introduced Italian")) +
   labs(subtitle = "A",
        x = "Origin",
        y = "FROH") +
   theme_minimal() +
   theme(plot.subtitle = element_text(hjust = 0.5, size = 12),
-        legend.position = "bottom")
+        legend.position = "none")
 
-# Barplot 
-Fra_FROH_bar <- ggplot(Fra_BCF_Summary, aes(y = ID, x = FROH, fill = Origin)) +
+# Barplot
+Ita_FROH_bar <- ggplot(Ita_BCF_Summary, aes(y = ID, x = ROH_Count, fill = Origin)) +
   geom_bar(stat = "identity") +
-  scale_fill_manual(values = c("Nat-FRA" = "#A50026",
-                               "Int-FRA" = "#F46D43"),
-                    labels = c("Nat-FRA" = "Native French", 
-                               "Int-FRA" = "Introduced French")) +
+  scale_fill_manual(values = c("Nat-ITA" = "#006837", "Int-ITA" = "#66BD63"),
+    labels = c("Nat-ITA" = "Native Italian", "Int-ITA" = "Introduced Italian")) +
   labs(subtitle = "B",
-       y = "Sample ID",
-       x = "Percentage genome with ROH") +
+       y = "Sample",
+       x = "Number of ROHs") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, size = 12),
+        axis.text.y = element_text(size = 10),
+        legend.position = "none")
+
+# Combine Panels A and B into one top row 
+Ita_FROH <- Ita_FROH_box + Ita_FROH_bar +
+  plot_layout(guides = "collect") +
+  theme(legend.position = "none")
+
+# Order the samples in Panel C to match the order in Panel B 
+ordered_ID_levels <- Ita_BCF_Summary %>% 
+  arrange(desc(ROH_Count)) %>% 
+  pull(ID) %>% 
+  unique()
+
+# Update your chromosome data so that the sample IDs become an ordered factor
+Ita_BCF_chr1 <- Ita_BCF_chr1 %>%
+  mutate(ID = factor(ID, levels = ordered_ID_levels))
+
+# Chromosome 1 ROH segments 
+Ita_ROH_chr1 <- ggplot(Ita_BCF_chr1, aes(x = POS1, xend = POS2, y = ID, color = as.factor(Origin))) +
+  geom_segment(aes(yend = ID), linewidth = 3) +  
+  scale_color_manual(values = c("Nat-ITA" = "#006837", "Int-ITA" = "#66BD63"),
+    labels = c("Nat-ITA" = "Native Italian", "Int-ITA" = "Introduced Italian")) + 
+  theme_minimal() +
+  labs(subtitle = "C",
+       x = "Genomic Position",
+       y = "Sample",
+       color = "Origin") +
+  theme(strip.text = element_text(size = 12),
+        axis.text.y = element_text(size = 8),
+    plot.subtitle = element_text(hjust = 0.5, size = 12))
+
+# Combine All Panels (A+B on top row, Panel C on bottom) ---
+Ita_ALL <- Ita_FROH / Ita_ROH_chr1 +
+  plot_layout(guides = "collect") 
+
+# Display the final combined plot
+print(Ita_ALL)
+
+# French 
+# Boxplot
+Fra_FROH_box <- ggplot(Fra_BCF_Summary, aes(x = Origin, y = FROH, fill = Origin)) +
+  geom_boxplot(outlier.shape = NA) + 
+  scale_fill_manual(values = c("Nat-FRA" = "#A50026", "Int-FRA" = "#F46D43"),
+    labels = c("Nat-FRA" = "Native French", "Int-FRA" = "Introduced French")) +
+  scale_x_discrete(
+    labels = c("Nat-FRA" = "Native French", "Int-FRA" = "Introduced French")) +
+  labs(subtitle = "A",
+       x = "Origin",
+       y = "FROH") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, size = 12),
+    legend.position = "none")
+
+# Barplot for French samples
+Fra_FROH_bar <- ggplot(Fra_BCF_Summary, aes(y = ID, x = ROH_Count, fill = Origin)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = c("Nat-FRA" = "#A50026", "Int-FRA" = "#F46D43"),
+    labels = c("Nat-FRA" = "Native French", "Int-FRA" = "Introduced French")) +
+  labs(subtitle = "B",
+       y = "Sample",
+       x = "Number of ROHs") +
   theme_minimal() +
   theme(plot.subtitle = element_text(hjust = 0.5, size = 12),
     axis.text.y = element_text(size = 10),
-    legend.position = "bottom")
+    legend.position = "none")
 
-# Combine the plots using patchwork
+# Combine Panels A and B into one top row
 Fra_FROH <- Fra_FROH_box + Fra_FROH_bar +
   plot_layout(guides = "collect") +
-  plot_annotation(title = "ROHs French lineage",
-                  theme = theme(plot.title = element_text(hjust = 0.5, size = 16))) &
-  theme(legend.position = "bottom")
+  theme(legend.position = "none")
 
-# Display the combined plot
-print(Fra_FROH)
+# Order the samples in Panel C to match the order in Panel B
+ordered_ID_levels <- Fra_BCF_Summary %>% 
+  arrange(desc(ROH_Count)) %>% 
+  pull(ID) %>% 
+  unique()
+
+# Update the chromosome data so that the sample IDs become an ordered factor
+Fra_BCF_chr1 <- Fra_BCF_chr1 %>%
+  mutate(ID = factor(ID, levels = ordered_ID_levels))
+
+# Chromosome 1 ROH segments for French samples
+Fra_ROH_chr1 <- ggplot(Fra_BCF_chr1, aes(x = POS1, xend = POS2, y = ID, color = as.factor(Origin))) +
+  geom_segment(aes(yend = ID), linewidth = 3) +  
+  scale_color_manual(values = c("Nat-FRA" = "#A50026", "Int-FRA" = "#F46D43"),
+    labels = c("Nat-FRA" = "Native French", "Int-FRA" = "Introduced French")) + 
+  theme_minimal() +
+  labs(subtitle = "C",
+       x = "Genomic Position",
+       y = "Sample",
+       color = "Origin") +
+  theme(strip.text = element_text(size = 12),
+    axis.text.y = element_text(size = 8),
+    plot.subtitle = element_text(hjust = 0.5, size = 12))
+
+# Combine All Panels (Panels A+B on top, Panel C on bottom)
+Fra_ALL <- Fra_FROH / Fra_ROH_chr1 +
+  plot_layout(guides = "collect")
+
+# Display the final combined plot
+print(Fra_ALL)
 
 
+# 2.2.2 PLINK ----
+# Load ROH data and edit table names
+Ita_ROHs <-read.table("Data/PopGen/All_Italian_ROHs_1.hom",h=T)
+Fra_ROHs <- read.table("Data/PopGen/All_French_ROHs_1.hom",h=T)
+Ita_ROHs <- Ita_ROHs %>% select(-FID)
+Ita_ROHs <- Ita_ROHs %>% rename(ID = 1)
+Fra_ROHs <- Fra_ROHs %>% select(-FID)
+Fra_ROHs <- Fra_ROHs %>% rename(ID = 1)
+
+Ita_ROHs<- merge(Italian,Ita_ROHs,by="ID")
+Fra_ROHs<- merge(French,Fra_ROHs,by="ID")
+
+# Remove the mixed origin sample
+Fra_ROHs <- Fra_ROHs %>% filter(ID != "CW2214")
+
+# Distribution 
+# Italian 
+ggplot(Ita_ROHs, aes(x = KB, fill = Origin)) +
+  geom_histogram(bins = 30, color = "black") + 
+  facet_wrap(~ Origin) + 
+  scale_fill_manual(values = c("Nat-ITA" = "#006837", 
+                               "Int-ITA" = "#66BD63")) + 
+  labs(title = "Italian ROHs length - PLINK",
+       x = "KB",
+       y = "Count") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+# French 
+ggplot(Fra_ROHs, aes(x = KB, fill= Origin)) +
+  geom_histogram(bins = 30, color = "black") + 
+  facet_wrap(~ Origin) + 
+  scale_fill_manual(values= c("Nat-FRA" = "#A50026", 
+                              "Int-FRA" = "#F46D43"))+
+  labs( title = "French ROHs length - PLINK",
+        x = "KB",
+        y = "Count")+
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5))
+
+# Distribution in chr 1 
+Ita_ROHs <- Ita_ROHs %>%
+  mutate(CHR = factor(CHR, levels = sort(as.numeric(as.character(unique(CHR))))))
+Fra_ROHs <- Fra_ROHs %>%
+  mutate(CHR = factor(CHR, levels = sort(as.numeric(as.character(unique(CHR))))))
+
+# Filter for Chromosome 1
+Ita_ROHs_chr1 <- Ita_ROHs %>% filter(CHR == 1)
+
+# Plot only Chr 1
+ggplot(Ita_ROHs_chr1, aes(x=POS1, xend=POS2, y=ID, color=as.factor(Origin))) +
+  geom_segment(aes(yend=ID), linewidth =3) +  
+  scale_color_manual(values= c("Nat-ITA" = "#006837", "Int-ITA" = "#66BD63")) +
+  theme_minimal() +
+  labs(x="Genomic Position", y="Sample", 
+       title="Italian ROH Regions for Chromosome 1 - PLINK", 
+       color="Origin") +
+  theme(strip.text = element_text(size=12), 
+        axis.text.y = element_text(size=8),
+        plot.title = element_text(hjust = 0.5))
+
+# Filter for Chromosome 1
+Fra_ROHs_chr1 <- Fra_ROHs %>% filter(CHR == 1)
+
+# Plot only Chr 1
+ggplot(Fra_ROHs_chr1, aes(x=POS1, xend=POS2, y=ID, color=as.factor(Origin))) +
+  geom_segment(aes(yend=ID), linewidth =3) +  
+  scale_color_manual(values= c("Nat-FRA" = "#A50026","Int-FRA" = "#F46D43")) +
+  theme_minimal() +
+  labs(x="Genomic Position", y="Sample", 
+       title="French ROH Regions for Chromosome 1 - PLINK", 
+       color="Origin") +
+  theme(strip.text = element_text(size=12), 
+        axis.text.y = element_text(size=8),
+        plot.title = element_text(hjust = 0.5))
+
+# FROH 
+# Italian
+Ita_Sum_ROH <- read.table("Data/PopGen/All_Italian_ROHs_1.hom.indiv",h=T)
+Ita_Sum_ROH <- Ita_Sum_ROH %>% select(-FID)
+Ita_Sum_ROH <- Ita_Sum_ROH %>% rename(ID = 1)
+
+Ita_Sum_ROH<- merge(Italian,Ita_Sum_ROH,by="ID")
+
+# Calculation of FROH 
+# Convert KB to BP
+Ita_Sum_ROH$Total_ROH_BP <- Ita_Sum_ROH$KB * 1000
+Ita_Sum_ROH$Total_Autosomal_BP <- 1423936391  # Total autosomal sites based on the sum of chrs (NCBI) 
+# Calculate FROH per individual
+Ita_Sum_ROH$FROH <- Ita_Sum_ROH$Total_ROH_BP / Ita_Sum_ROH$Total_Autosomal_BP
+
+# Test significance 
+# Difference in the inbreeding coeficient
+wilcox.test(FROH ~ Origin, data = Ita_Sum_ROH)
+# Length of ROHs comparison 
+Ita_model <- glmer(KB ~ Origin + (1 | ID), 
+                   family = Gamma(link = "log"), 
+                   data = Ita_ROHs)
+summary(Ita_model)
+anova(Ita_model)
+
+# Plot FROH 
+ggplot(Ita_Sum_ROH, aes(x = Origin, y = FROH , fill = Origin)) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.7) + # Boxplot to visualize distribution
+  geom_jitter(width = 0.2, size = 2, alpha = 0.6, color = "black")+
+  scale_fill_manual(values= c("Nat-ITA" = "#006837",
+                              "Int-ITA" = "#66BD63")) +
+  geom_text_repel(aes(label = ID), size = 3, max.overlaps = 20) +
+  labs(title = "Italian Inbreeding coefficient - PLINK", x = "Origin", y = "FROH") +
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5))
+
+# French 
+Fra_Sum_ROH <- read.table("Data/PopGen/All_French_ROHs_1.hom.indiv",h=T)
+Fra_Sum_ROH <- Fra_Sum_ROH %>% select(-FID)
+Fra_Sum_ROH <- Fra_Sum_ROH %>% rename(ID = 1)
+
+Fra_Sum_ROH<- merge(French,Fra_Sum_ROH,by="ID")
+Fra_Sum_ROH <- Fra_Sum_ROH %>% filter(ID != "CW2214")
+# Calculation of FROH 
+# Convert KB to BP
+Fra_Sum_ROH$Total_ROH_BP <- Fra_Sum_ROH$KB * 1000
+Fra_Sum_ROH$Total_Autosomal_BP <- 1423936391  # Total record in the VCF 
+# Calculate FROH per individual
+Fra_Sum_ROH$FROH <- Fra_Sum_ROH$Total_ROH_BP / Fra_Sum_ROH$Total_Autosomal_BP
+
+# Test significance 
+# Difference in the inbreeding coeficient
+wilcox.test(FROH ~ Origin, data = Fra_Sum_ROH)
+# Length of ROHs comparison 
+Fra_model <- glmer(KB ~ Origin + (1 | ID), 
+                   family = Gamma(link = "log"), 
+                   data = Fra_ROHs)
+summary(Fra_model)
+anova(Fra_model)
+
+# Plot FROH 
+ggplot(Fra_Sum_ROH, aes(x = Origin, y = FROH , fill = Origin)) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.7) + # Boxplot to visualize distribution
+  geom_jitter(width = 0.2, size = 2, alpha = 0.6, color = "black")+
+  scale_fill_manual(values= c("Nat-FRA" = "#A50026", 
+                              "Int-FRA" = "#F46D43"))+
+  geom_text_repel(aes(label = ID), size = 3, max.overlaps = 20) +
+  labs(title = "French Inbreeding coefficient - PLINK", x = "Origin", y = "FROH") +
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5))
 
 
 
