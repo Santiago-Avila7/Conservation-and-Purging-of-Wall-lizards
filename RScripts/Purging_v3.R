@@ -1,8 +1,8 @@
 # PURGING 2.0 ------
 # Load required packages 
 pacman::p_load(ggplot2, openxlsx, RColorBrewer, dplyr, grid, gridExtra, ggrepel,
-               reshape2, tidyr, paletteer, ggtree, stringr, FSA, broom,purrr, 
-               dunn.test)
+               reshape2, tidyr, paletteer, ggtree, stringr, lmerTest, lme4, FSA,
+               PMCMRplus, broom)
 
 # Load Italian Purging dataset
 Ita_Purging <- read.table("Data/Purging/All_italian_freq.tsv", h=T)
@@ -179,9 +179,7 @@ ggplot(Rxy_Natives, aes(x = Rxy, fill = Impact, color = Impact)) +
 # Each population ----
 
 # Load all required packages (excluding purrr for compatibility)
-pacman::p_load( ggplot2, openxlsx, RColorBrewer, dplyr, grid, gridExtra, ggrepel,
-  reshape2, tidyr, paletteer, ggtree, stringr, lmerTest, lme4, FSA,
-  PMCMRplus, broom)
+
 
 # ======================================================================
 # Rxy ANALYSIS PIPELINE WITH WELCH'S ANOVA AND GAMES-HOWELL POST-HOC TESTS
