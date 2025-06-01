@@ -2,7 +2,7 @@
 # Load required packages 
 pacman::p_load(ggplot2, openxlsx, RColorBrewer, dplyr, grid, gridExtra, ggrepel,
                reshape2, tidyr, paletteer, ggtree, stringr, lmerTest, lme4, FSA,
-               PMCMRplus, broom)
+               PMCMRplus, broom,patchwork)
 
 # Load Italian Purging dataset
 Ita_Purging <- read.table("Data/Purging/All_italian_freq.tsv", h=T)
@@ -51,16 +51,20 @@ calculate_minmax <- function(data) {
 calculate_minmax(Rxy_Italian)
 
 
-# **Visualization - Boxplot**
-ggplot(Rxy_Italian, aes(x = Rxy, y = Impact, fill = Impact)) +
-  geom_boxplot() +
-  labs(title = "Rxy by Impact Category - Italian",
+# Boxplot
+Ita_plot<- ggplot(Rxy_Italian, aes(x = Rxy, y = Impact, fill = Impact)) +
+  geom_boxplot(fill = "#66BD63",  
+               outlier.shape = NA, 
+               alpha = 0.8) +
+  labs(subtitle =  "A - Italian",
        x = "Rxy",
        y = "Impact Category") +
   theme_minimal() +
   scale_x_continuous(limits = c(0.96, 1.04))
 
-# **Visualization - Density Plot**
+print (Ita_plot)
+
+# Visualization - Density Plot
 ggplot(Rxy_Italian, aes(x = Rxy, fill = Impact, color = Impact)) +
   geom_density(alpha = 0.5) +  # Overlay density curves
   labs(title = "Distribution of Rxy by Impact Category - Italian",
@@ -102,15 +106,20 @@ Rxy_French<- Rxy_French %>%
                values_to = "Rxy") %>%      # New column for Rxy values
   mutate(Impact = str_remove(Impact, "Rxy_")) # Clean up impact names
 
-# Plots 
-ggplot(Rxy_French, aes(x = Rxy, y = Impact, fill = Impact)) +
-  geom_boxplot() +
-  labs(title = "Rxy by Impact Category - French",
+# BoxPlot 
+Fra_plot <- ggplot(Rxy_French, aes(x = Rxy, y = Impact, fill = Impact)) +
+  geom_boxplot(fill = "#F46D43",  
+               outlier.shape = NA, 
+               alpha = 0.8) +
+  labs(subtitle = "B - French",
        x = "Rxy",
        y = "Impact Category") +
   theme_minimal() +
   scale_x_continuous(limits = c(0.96, 1.04))
 
+print(Fra_plot)  
+
+# Desnsity plot 
 ggplot(Rxy_French, aes(x = Rxy, fill = Impact, color = Impact)) +
   geom_density(alpha = 0.5) +  # Overlay density curves
   labs( title = "Distribution of Rxy by Impact Category - French",
@@ -118,10 +127,15 @@ ggplot(Rxy_French, aes(x = Rxy, fill = Impact, color = Impact)) +
   theme_minimal() +
   scale_x_continuous(limits = c(0.96, 1.04))
 
-# Ensure Impact is a factor before statistical tests
+# Confirm data as factors ans check min max values after jackknifing
 Rxy_French$Impact <- as.factor(Rxy_French$Impact)
-
 calculate_minmax(Rxy_French)
+
+# Combined plot 
+Purging_plot<- Ita_plot + Fra_plot +
+  plot_layout(guides = "collect")
+
+print (Purging_plot)
 
 
 # All Native ---- 
@@ -251,43 +265,35 @@ for (pop in names(population_results)) {
 # VISUALIZATION FOR EACH POPULATION
 # ======================================================================
 
-# Function to create a boxplot panel by population
-plot_rxy_distribution <- function(data, title) {
-  ggplot(data, aes(x = Rxy, y = Impact, fill = Impact)) +
-    geom_boxplot(outlier.shape = NA, alpha = 0.6) +
-    facet_wrap(~ Population, nrow = 2) +
-    theme_minimal() +
-    scale_x_continuous(limits = c(0.9, 1.1)) +
-    labs(title = title, x = "Rxy", y = "Impact Category")
-}
+# Create Italian plot with green color
+boxplot_Italian <- Rxy_all %>%
+  filter(Group == "Italian") %>%
+  ggplot(aes(x = Rxy, y = Impact)) +
+  geom_boxplot(fill = "#66BD63",  # Green for Italian
+               outlier.shape = NA, 
+               alpha = 0.6) +
+  facet_wrap(~ Population, nrow = 2) +
+  theme_minimal() +
+  scale_x_continuous(limits = c(0.9, 1.1)) +
+  labs(x = "Rxy", y = "Impact Category") +
+  theme(legend.position = "none")
 
-# Create panels for Italian and French populations
-boxplot_Italian <- plot_rxy_distribution(filter(Rxy_all, Group == "Italian"),
-                                         "Comparative Rxy Across Italian Populations")
-boxplot_French  <- plot_rxy_distribution(filter(Rxy_all, Group == "French"),
-                                         "Comparative Rxy Across French Populations")
+# Create French plot with orange color
+boxplot_French <- Rxy_all %>%
+  filter(Group == "French") %>%
+  ggplot(aes(x = Rxy, y = Impact)) +
+  geom_boxplot(fill = "#F46D43",  # Orange for French
+               outlier.shape = NA, 
+               alpha = 0.6) +
+  facet_wrap(~ Population, nrow = 2) +
+  theme_minimal() +
+  scale_x_continuous(limits = c(0.9, 1.1)) +
+  labs(x = "Rxy", y = "Impact Category") +
+  theme(legend.position = "none")
 
-# Print the boxplot panels
-print(boxplot_Italian)
-print(boxplot_French)
+# Display plots
+boxplot_Italian
+boxplot_French
 
-# Function to create a density plot panel by population
-plot_rxy_density <- function(data, title) {
-  ggplot(data, aes(x = Rxy, fill = Population, color = Population)) +
-    geom_density(alpha = 0.5) +
-    facet_wrap(~ Population, nrow = 2) +
-    theme_minimal() +
-    scale_x_continuous(limits = c(0.9, 1.1)) +
-    labs(title = title, x = "Rxy", y = "Density")
-}
 
-# Create panels for Italian and French populations
-density_Italian <- plot_rxy_density(filter(Rxy_all, Group == "Italian"),
-                                    "Distribution of Rxy Across Italian Populations")
-density_French  <- plot_rxy_density(filter(Rxy_all, Group == "French"),
-                                    "Distribution of Rxy Across French Populations")
-
-# Print the density plot panels
-print(density_Italian)
-print(density_French)
 
