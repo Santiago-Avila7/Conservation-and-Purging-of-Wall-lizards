@@ -1,15 +1,16 @@
-######### Visualization of results ######
-## Packages load ###
+######### Compilation of results and Visualization ######
+
+## Packages ###
 pacman::p_load(ggplot2,openxlsx,RColorBrewer,dplyr,grid,gridExtra,ggrepel,
                reshape2,tidyr,paletteer,ggtree,stringr,lmerTest,lme4,FSA,
-               boot,patchwork,effsize)
+               boot,patchwork,effsize,PMCMRplus, broom)
 
 #### 1. POPULATION STRUCTURE ####
 
 ## 1.1 PCA -----
 
 # 1.1.1 Preparing the data set ----
-#Load condensed sample data, sample + origin
+# Load condensed sample data, sample + origin
 Lizards <- readWorkbook("Data/Samples_Santiago.xlsx", sheet = 2)
 
 # Using the PCA outputs from Plink
@@ -68,7 +69,7 @@ p2 <- ggplot(pca_data, aes(x = PC1, y = PC3, color = Origin)) +
   theme_minimal() +
   theme(legend.position = "none", axis.title = element_text(size = 12))
 
-# Combine the plots with a shared legend and centered title
+# Combine the plots with a shared label
 PCA_plot <- p1 + p2 + 
   plot_layout(guides = "collect") + 
   plot_annotation(theme = theme(plot.title = element_text(hjust = 0.5, size = 15))) &
@@ -125,7 +126,7 @@ treeplot <- ggtree(tree, layout = "radial") %<+% tree_data +
 print(treeplot)
 
 
-## 3. ADMIXTURE -----
+## 1.3. ADMIXTURE -----
 
 # 1.3.1 Plot the CV error from the ADMIXTURE analysis----
 cv_error <- read.table("Data/PopGen/CV_errors_summary.txt", h=F)
@@ -133,13 +134,12 @@ colnames (cv_error)<- c("rm","rm2","K","CV_error")
 cv_error <- cv_error %>%
   mutate(K = str_extract(K, "\\d+"))
 cv_error <- cv_error %>% select(-rm, -rm2)
-plot(cv_error)
+plot(cv_error) # Best supported K = 2 , 3 and 4
+
 
 # 1.3.2 Organize the Data of K = 2,3 and 4 ----
 
-# Load Admix data and merge with ORGANIZED population data 
-
-# Load Admix data and merge with ORGANIZED population data 
+# Load Admix data and merge with organized population data 
 
 Lizards_admix<- readWorkbook("Data/Samples_Santiago.xlsx", sheet = 3)
 K2<- read.table("Data/PopGen/K2.Q", header=F)
@@ -154,6 +154,7 @@ colnames(K3) <- c("ID","Origin","Abbpop","Q1","Q2","Q3")
 K4<- cbind(Lizards_admix, K4)
 colnames(K4) <- c("ID","Origin","Abbpop","Q1","Q2","Q3","Q4")
 
+# Organize samples based on K2 (Best supported)
 ordered_individuals <- K2 %>%
   arrange(-Q1) %>%
   pull(ID)  
@@ -190,7 +191,7 @@ ggplot(admix_data, aes(x = ID, y = Q_value, fill = Ancestry)) +
   labs(y = "Admixture Proportion", x = "Individual")
 
 
-#### 2. GENETIC DIVERSITY ####
+#### 2. GENETIC DIVERSITY AND INBREEDING ####
 
 ## 2.1. HETEROZYGOSITY ----
 
@@ -280,7 +281,7 @@ italian_plot <- ggplot(Ita_Het, aes(x = Origin, y = Observed_Het, fill = Origin)
                     labels = c("Nat-ITA" = "Native Italian", 
                                "Int-ITA" = "Introduced Italian")) +
   scale_x_discrete(
-    labels = c("Nat-ITA" = "Native Italian", "Int-ITA" = "Introduced Italian"))
+    labels = c("Nat-ITA" = "Native Italian", "Int-ITA" = "Introduced Italian")) +
   labs(subtitle = "A",
        x = "Origin",
        y = "Heterozygosity") +
@@ -296,7 +297,7 @@ french_plot <- ggplot(Fra_Het, aes(x = Origin, y = Observed_Het, fill = Origin))
                     labels = c("Nat-FRA" = "Native French", 
                                "Int-FRA" = "Introduced French")) +
   scale_x_discrete(
-    labels = c("Nat-FRA" = "Native French", "Int-FRA" = "Introduced French"))
+    labels = c("Nat-FRA" = "Native French", "Int-FRA" = "Introduced French")) +
   labs(subtitle = "B",
        x = "Origin",
        y = "Heterozygosity") +
@@ -415,7 +416,6 @@ ggplot(Fra_BCF, aes(x = BP, fill= Origin)) +
   theme(plot.title = element_text(hjust = 0.5))
 
 # Positions in chr 1 
-
 Ita_BCF <- Ita_BCF %>%
   mutate(CHR = factor(CHR, levels = sort(as.numeric(as.character(unique(CHR))))))
 Fra_BCF <- Fra_BCF %>%
@@ -459,7 +459,7 @@ Ita_BCF_Summary <- Ita_BCF %>%
     Total_ROH_BP = sum(BP),  # Total length of ROHs
     Avg_ROH_BP = mean(BP),   # Average ROH length
     ROH_Count = n(),         # Count of ROH records per sample
-    Total_Autosomal_BP = 1423936391,  # Constant column
+    Total_Autosomal_BP = 1423936391,  # Constant column - full hom Psudogenome 
     FROH = Total_ROH_BP / Total_Autosomal_BP, # FROH Calculation
     .groups = "drop")
 
@@ -491,8 +491,8 @@ summary(Ita_BCF_model)
 # Get the proportion of the effect 
 exp(fixef(Ita_BCF_model)[-1]) #  ~ meaning 0.7X difference.
 
-# Confidence intervals 
-# Function for bootstrapping
+# Confidence intervals for the model 
+# Function for bootstrapping 1000 replicates 
 get_boot_ci <- function(model, term, nsim = 1000) {
   boot_fun <- function(.) {
     fixef(.)[term]
@@ -505,7 +505,7 @@ get_boot_ci <- function(model, term, nsim = 1000) {
   return(exp(ci))
 }
 
-# Italian model
+# Italian confidence intervals
 boot_ci_ita <- get_boot_ci(Ita_BCF_model, "OriginNat-ITA")
 names(boot_ci_ita) <- c("Lower 95% CI", "Upper 95% CI")
 boot_ci_ita # = 0.5056920 to 0.9194861  
@@ -544,7 +544,7 @@ Fra_BCF_Summary <- Fra_BCF %>%
     Total_ROH_BP = sum(BP),  # Total length of ROHs
     Avg_ROH_BP = mean(BP),   # Average ROH length
     ROH_Count = n(), 
-    Total_Autosomal_BP =  1423936391,   # Constant column
+    Total_Autosomal_BP =  1423936391,   # Constant column full hom Psudogenome
     FROH = Total_ROH_BP / Total_Autosomal_BP) 
 
 # Test significance 
@@ -606,7 +606,6 @@ ggplot(Fra_BCF_Summary, aes(y = ID, x = ROH_Count, fill = Origin)) +
   theme_minimal() +
   theme(axis.text.y = element_text(size = 10),
         plot.title = element_text(hjust = 0.5, size = 15))
-
 
 # Combined plots
 # Italian
@@ -738,7 +737,9 @@ Fra_ALL <- Fra_FROH / Fra_ROH_chr1 +
 print(Fra_ALL)
 
 
-# 2.2.2 PLINK ----
+# 2.2.2 PLINK ---- 
+# PLINK was used to contrast with the results form BCFTools
+
 # Load ROH data and edit table names
 Ita_ROHs <-read.table("Data/PopGen/All_Italian_ROHs_1.hom",h=T)
 Fra_ROHs <- read.table("Data/PopGen/All_French_ROHs_1.hom",h=T)
@@ -828,15 +829,11 @@ Ita_Sum_ROH$Total_Autosomal_BP <- 1423936391  # Total autosomal sites based on t
 # Calculate FROH per individual
 Ita_Sum_ROH$FROH <- Ita_Sum_ROH$Total_ROH_BP / Ita_Sum_ROH$Total_Autosomal_BP
 
-# Test significance 
-# Difference in the inbreeding coeficient
-wilcox.test(FROH ~ Origin, data = Ita_Sum_ROH)
 # Length of ROHs comparison 
 Ita_model <- glmer(KB ~ Origin + (1 | ID), 
                    family = Gamma(link = "log"), 
                    data = Ita_ROHs)
 summary(Ita_model)
-anova(Ita_model)
 
 # Plot FROH 
 ggplot(Ita_Sum_ROH, aes(x = Origin, y = FROH , fill = Origin)) +
@@ -863,15 +860,11 @@ Fra_Sum_ROH$Total_Autosomal_BP <- 1423936391  # Total record in the VCF
 # Calculate FROH per individual
 Fra_Sum_ROH$FROH <- Fra_Sum_ROH$Total_ROH_BP / Fra_Sum_ROH$Total_Autosomal_BP
 
-# Test significance 
-# Difference in the inbreeding coeficient
-wilcox.test(FROH ~ Origin, data = Fra_Sum_ROH)
 # Length of ROHs comparison 
 Fra_model <- glmer(KB ~ Origin + (1 | ID), 
                    family = Gamma(link = "log"), 
                    data = Fra_ROHs)
 summary(Fra_model)
-anova(Fra_model)
 
 # Plot FROH 
 ggplot(Fra_Sum_ROH, aes(x = Origin, y = FROH , fill = Origin)) +
@@ -884,6 +877,236 @@ ggplot(Fra_Sum_ROH, aes(x = Origin, y = FROH , fill = Origin)) +
   theme_minimal()+
   theme(plot.title = element_text(hjust = 0.5))
 
+# 3. PURGING  -----
+
+# 3.1 Calculate Rxy for Italian-origin samples ----
+
+# Load Italian Purging dataset - Relative frequencies and Jackknifing information
+Ita_Purging <- read.table("Data/Purging/All_italian_freq.tsv", h=T)
+
+# Calculate Lxy and Lyx ratios
+Ita_Purging <- Ita_Purging %>%
+  mutate(Lxy_HIGH = Sum_fxy_HIGH / Sum_fxy_INTERGENIC,
+         Lyx_HIGH = Sum_fyx_HIGH / Sum_fyx_INTERGENIC,
+         Lxy_MODERATE = Sum_fxy_MODERATE / Sum_fxy_INTERGENIC,
+         Lyx_MODERATE = Sum_fyx_MODERATE / Sum_fyx_INTERGENIC,
+         Lxy_LOW = Sum_fxy_LOW / Sum_fxy_INTERGENIC,
+         Lyx_LOW = Sum_fyx_LOW / Sum_fyx_INTERGENIC,
+         Lxy_MODIFIER = Sum_fxy_MODIFIER / Sum_fxy_INTERGENIC,
+         Lyx_MODIFIER = Sum_fyx_MODIFIER / Sum_fyx_INTERGENIC,
+         
+         # Compute Rxy per mutation impact category
+         Rxy_High = Lxy_HIGH / Lyx_HIGH,
+         Rxy_Moderate = Lxy_MODERATE / Lyx_MODERATE,
+         Rxy_Low = Lxy_LOW / Lyx_LOW,
+         Rxy_Modifier = Lxy_MODIFIER / Lyx_MODIFIER)
+
+# Select only relevant Rxy values
+Rxy_Italian <- Ita_Purging %>%
+  select(Rxy_High, Rxy_Moderate, Rxy_Low, Rxy_Modifier)
+
+# Reshape data into long format for analysis
+Rxy_Italian <- Rxy_Italian %>% 
+  pivot_longer(cols = starts_with("Rxy_"),   # Select Rxy columns
+               names_to = "Impact",          # Create column for categories
+               values_to = "Rxy") %>%        # Assign values to Rxy
+  mutate(Impact = str_remove(Impact, "Rxy_")) # Clean category names
+
+# Function to retrieve summary of the results after jackknifing 
+calculate_minmax <- function(data) { 
+  data %>%
+    group_by(Impact) %>% 
+    summarise(
+      mean_Rxy = mean(Rxy, na.rm = TRUE), #Retrieve mean value 
+      min_Rxy = min(Rxy, na.rm = TRUE), #Retrieve minimum value
+      max_Rxy = max(Rxy, na.rm = TRUE), #Retrieve maximum value 
+      .groups = "drop"
+    ) %>%
+    mutate(across(where(is.numeric), 
+                  ~ formatC(., format = "f", digits = 3)))}
+
+calculate_minmax(Rxy_Italian)
+
+# Visualize Italian-origin 
+# Boxplot
+Ita_plot<- ggplot(Rxy_Italian, aes(x = Rxy, y = Impact, fill = Impact)) +
+  geom_boxplot(fill = "#66BD63",  
+               outlier.shape = NA, 
+               alpha = 0.8) +
+  labs(subtitle =  "A - Italian",
+       x = "Rxy",
+       y = "Impact Category") +
+  theme_minimal() +
+  scale_x_continuous(limits = c(0.96, 1.04))
+
+print (Ita_plot)
+
+# Density Plot
+ggplot(Rxy_Italian, aes(x = Rxy, fill = Impact, color = Impact)) +
+  geom_density(alpha = 0.5) + 
+  labs(title = "Distribution of Rxy by Impact Category - Italian",
+       x = "Rxy", y = "Density") +
+  theme_minimal() +
+  scale_x_continuous(limits = c(0.96, 1.04))
+
+# 3.2 Calculate Rxy for French-origin samples ----
+Fra_Purging <- read.table("Data/Purging/All_French_freq.tsv", h=T)
+
+# Get Lxy and Lyx 
+Fra_Purging <- Fra_Purging %>%
+  mutate(Lxy_HIGH = Sum_fxy_HIGH/Sum_fxy_INTERGENIC,
+         Lyx_HIGH = Sum_fyx_HIGH/Sum_fyx_INTERGENIC,
+         Lxy_MODERATE = Sum_fxy_MODERATE/Sum_fxy_INTERGENIC,
+         Lyx_MODERATE = Sum_fyx_MODERATE/Sum_fyx_INTERGENIC,
+         Lxy_LOW = Sum_fxy_LOW/Sum_fxy_INTERGENIC,
+         Lyx_LOW = Sum_fyx_LOW/Sum_fyx_INTERGENIC,
+         Lxy_MODIFIER = Sum_fxy_MODIFIER/Sum_fxy_INTERGENIC,
+         Lyx_MODIFIER = Sum_fyx_MODIFIER/Sum_fyx_INTERGENIC,
+         
+         # Get Rxy per impact 
+         Rxy_High = Lxy_HIGH/Lyx_HIGH,
+         Rxy_Moderate = Lxy_MODERATE/Lyx_MODERATE,
+         Rxy_Low = Lxy_LOW/Lyx_LOW,
+         Rxy_Modifier = Lxy_MODIFIER/Lyx_MODIFIER)
+
+# Filter just Rxy values
+Rxy_French<- Fra_Purging %>%
+  select(Rxy_High,
+         Rxy_Moderate,
+         Rxy_Low,
+         Rxy_Modifier)
+
+# Transform data 
+Rxy_French<- Rxy_French %>% 
+  pivot_longer(cols = starts_with("Rxy_"),  # Select all R_ columns
+               names_to = "Impact",       # New column for impact categories
+               values_to = "Rxy") %>%      # New column for Rxy values
+  mutate(Impact = str_remove(Impact, "Rxy_")) # Clean up impact names
+
+# Visualize French-origin 
+# BoxPlot 
+Fra_plot <- ggplot(Rxy_French, aes(x = Rxy, y = Impact, fill = Impact)) +
+  geom_boxplot(fill = "#F46D43",  
+               outlier.shape = NA, 
+               alpha = 0.8) +
+  labs(subtitle = "B - French",
+       x = "Rxy",
+       y = "Impact Category") +
+  theme_minimal() +
+  scale_x_continuous(limits = c(0.96, 1.04))
+
+print(Fra_plot)  
+
+# Density plot 
+ggplot(Rxy_French, aes(x = Rxy, fill = Impact, color = Impact)) +
+  geom_density(alpha = 0.5) +  
+  labs( title = "Distribution of Rxy by Impact Category - French",
+        x = "Rxy", y = "Density") +
+  theme_minimal() +
+  scale_x_continuous(limits = c(0.96, 1.04))
+
+# Confirm data as factors ans check min max values after jackknifing
+Rxy_French$Impact <- as.factor(Rxy_French$Impact)
+calculate_minmax(Rxy_French)
+
+# Combined plot 
+Purging_plot<- Ita_plot + Fra_plot +
+  plot_layout(guides = "collect")
+
+print (Purging_plot)
 
 
+# 3.3 Calculate Rxy for each population ----
 
+# Define populations
+italian_pops <- c("BB", "DL", "NF", "SH", "VT", "WS")
+french_pops <- c("BU", "WB", "WE")
+
+# List input files
+freq_files <- list.files("Data/Purging/", pattern = "^All_.*_freq\\.tsv$", full.names = TRUE)
+
+# Function to calculate Rxy per file
+calculate_Rxy <- function(file_path) {
+  pop <- stringr::str_extract(basename(file_path), "(?<=All_).*(?=_freq.tsv)")
+  df <- read.table(file_path, header = TRUE)
+  
+  df <- df %>%
+    mutate(Population = pop,
+           Lxy_HIGH = Sum_fxy_HIGH / Sum_fxy_INTERGENIC,
+           Lyx_HIGH = Sum_fyx_HIGH / Sum_fyx_INTERGENIC,
+           Lxy_MODERATE = Sum_fxy_MODERATE / Sum_fxy_INTERGENIC,
+           Lyx_MODERATE = Sum_fyx_MODERATE / Sum_fyx_INTERGENIC,
+           Lxy_LOW = Sum_fxy_LOW / Sum_fxy_INTERGENIC,
+           Lyx_LOW = Sum_fyx_LOW / Sum_fyx_INTERGENIC,
+           Lxy_MODIFIER = Sum_fxy_MODIFIER / Sum_fxy_INTERGENIC,
+           Lyx_MODIFIER = Sum_fyx_MODIFIER / Sum_fyx_INTERGENIC,
+           Rxy_High = Lxy_HIGH / Lyx_HIGH,
+           Rxy_Moderate = Lxy_MODERATE / Lyx_MODERATE,
+           Rxy_Low = Lxy_LOW / Lyx_LOW,
+           Rxy_Modifier = Lxy_MODIFIER / Lyx_MODIFIER) %>%
+    select(Population, starts_with("Rxy_")) %>%
+    pivot_longer(cols = starts_with("Rxy_"),
+                 names_to = "Impact", values_to = "Rxy") %>%
+    mutate(Impact = stringr::str_remove(Impact, "Rxy_"))
+  
+  return(df)
+}
+
+# Process all files
+Rxy_all <- bind_rows(lapply(freq_files, calculate_Rxy)) %>%
+  mutate(Group = case_when(
+    Population %in% italian_pops ~ "Italian",
+    Population %in% french_pops ~ "French",
+    TRUE ~ "Native" ))
+
+# Gather all the results 
+population_results <- lapply(unique(Rxy_all$Population), function(pop) {
+  Rxy_all %>%
+    filter(Population == pop) %>%
+    calculate_minmax() %>%
+    mutate(Population = pop) %>%
+    select(Population, everything())
+})
+
+# Name results properly
+names(population_results) <- unique(Rxy_all$Population)
+
+# Print formatted results
+for (pop in names(population_results)) {
+  cat("\n=== Results for", pop, "===\n")
+  print(as_tibble(population_results[[pop]]))
+}
+
+# Generate plots per population
+# Create Italian plot with green color
+boxplot_Italian <- Rxy_all %>%
+  filter(Group == "Italian") %>%
+  ggplot(aes(x = Rxy, y = Impact)) +
+  geom_boxplot(fill = "#66BD63",  # Green for Italian
+               outlier.shape = NA, 
+               alpha = 0.6) +
+  facet_wrap(~ Population, nrow = 2) +
+  theme_minimal() +
+  scale_x_continuous(limits = c(0.9, 1.1)) +
+  labs(x = "Rxy", y = "Impact Category") +
+  theme(legend.position = "none")
+
+# Create French plot with orange color
+boxplot_French <- Rxy_all %>%
+  filter(Group == "French") %>%
+  ggplot(aes(x = Rxy, y = Impact)) +
+  geom_boxplot(fill = "#F46D43",  # Orange for French
+               outlier.shape = NA, 
+               alpha = 0.6) +
+  facet_wrap(~ Population, nrow = 2) +
+  theme_minimal() +
+  scale_x_continuous(limits = c(0.9, 1.1)) +
+  labs(x = "Rxy", y = "Impact Category") +
+  theme(legend.position = "none")
+
+# Display plots
+boxplot_Italian
+boxplot_French
+
+
+######## END #########
