@@ -8,6 +8,8 @@
 #SBATCH -J mapping
 #SBATCH -t 15:00:00
 
+# Quality of trimmed data and mapping 
+
 date
 
 module load bwa/0.7.17
@@ -78,8 +80,8 @@ java -jar $PICARD_HOME/picard.jar AddOrReplaceReadGroups -INPUT mapping/Pmu_BNI_
 #index again
 java -jar $PICARD_HOME/picard.jar BuildBamIndex -INPUT mapping/Pmu_BNI_P90s_marked_renamed.bam
 
-# check the coverage stats
-samtools coverage mappingPmu_BNI_P90s_marked_renamed.bam  grep -v '#'  awk '{sum+=$7} END { print ${ind}, AverageCoverage = ,sumNR}'  mappingPmu_BNI_P90s_CoverageStats
+# Get the depth stats
+samtools depth -a mappingPmu_BNI_P90s_marked_renamed.bam | awk -v ind="$ind" '{sum+=$3} END {print ind, "Average =", sum/NR}' > mappingPmu_BNI_P90s_DepthStats
 
 # remove intermediate files
 rm mapping/Pmu_BNI_P90s_marked.ba*

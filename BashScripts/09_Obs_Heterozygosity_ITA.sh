@@ -11,6 +11,8 @@
 #SBATCH --mail-type=FAIL
 #SBATCH --mail-user=sa5674av-s@student.lu.se
 
+# Count heterozygous sites per sample in Italian-origin samples 
+
 # Load bcftools module
 module load bcftools/1.20
 

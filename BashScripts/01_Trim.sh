@@ -6,6 +6,8 @@
 #SBATCH -J Pmu_trim
 #SBATCH -t 60:00:00
 
+# Trimming and preparing for mapping
+
 module load trimmomatic/0.39
 
 # Define the source and target directories

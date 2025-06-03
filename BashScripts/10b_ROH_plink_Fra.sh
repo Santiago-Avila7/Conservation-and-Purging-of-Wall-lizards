@@ -11,6 +11,7 @@
 #SBATCH --mail-type=FAIl
 #SBATCH --mail-user=sa5674av-s@student.lu.se
 
+# ROH calling using PLINK - French
 
 # Modules needed 
 module load bioinfo-tools

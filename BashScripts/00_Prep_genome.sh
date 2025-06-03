@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Prepare the reference genome for the following analyses
+
 module load samtools
 samtools faidx genome.fna
 

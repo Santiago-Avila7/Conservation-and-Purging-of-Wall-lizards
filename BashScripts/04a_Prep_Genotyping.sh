@@ -1,5 +1,7 @@
 #!/bin/bash -l 
 
+# Generate necessary list files for Genotyping 
+
 # Define directories
 datadir=/cfs/klemming/projects/snic/snic2022-23-124/Santiago/SNP_calling
 mkdir -p /cfs/klemming/projects/snic/snic2022-23-124/Santiago/SNP_calling/ROH_JointGenotyping

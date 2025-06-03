@@ -10,6 +10,8 @@
 #SBATCH --mail-type=FAIL
 #SBATCH --mail-user=sa5674av-s@student.lu.se
 
+# Genral Variant caling script 
+
 #Modules used
 module load gatk/4.5.0.0
 

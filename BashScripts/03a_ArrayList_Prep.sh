@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Creates a list to run variant calling as an array 
+
 # Files containing samples and chromosomes
 samples_file="Samples_Used"
 chromosomes_file="Chromosome_names_temp.txt"

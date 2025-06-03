@@ -13,6 +13,7 @@
 #SBATCH --mail-type=FAIL
 #SBATCH --mail-user=sa5674av-s@student.lu.se
 
+# Array for Genotyping and hard-filtering in Italian-orign samples 
 
 #Modules
 module load gatk/4.5.0.0

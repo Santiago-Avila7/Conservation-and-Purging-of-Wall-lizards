@@ -13,6 +13,8 @@
 #SBATCH --mail-user=sa5674av-s@student.lu.se
 #SBATCH --array=1-510%40
 
+# Variant calling array (1 job per chromosome for each sample)
+
 # Load GATK module
 module load gatk/4.5.0.0
 

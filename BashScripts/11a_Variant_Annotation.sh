@@ -12,6 +12,8 @@
 #SBATCH --mail-type=FAIL
 #SBATCH --mail-user=sa5674av-s@student.lu.se
 
+# Annotate SNP dataset using SnpEff
+
 # Activate the mamaba environment (Be sure that it is active when queueing the job)
 mamba activate snpeff
 module load bcftools/1.20

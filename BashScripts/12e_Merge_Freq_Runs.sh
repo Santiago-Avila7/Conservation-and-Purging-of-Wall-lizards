@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Gather all results after block jaccknifing in a single file 
+
 INPUT_DIR="/cfs/klemming/projects/snic/snic2022-23-124/Santiago/Purging/IntroducedVsNative/Italian"
 OUTPUT_FILE="${INPUT_DIR}/All_Italian_freq.tsv"
 

@@ -10,6 +10,8 @@
 #SBATCH --mail-type=FAIL
 #SBATCH --mail-user=sa5674av-s@student.lu.se
 
+# Generates a full homozoygous pseudogenome and call ROHs - Used in FROH 
+
 # =============================================
 # 1. Load required modules
 # =============================================

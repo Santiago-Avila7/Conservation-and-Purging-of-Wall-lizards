@@ -10,6 +10,10 @@
 #SBATCH --mail-type=FAIl
 #SBATCH --mail-user=sa5674av-s@student.lu.se
 
+# ROH calling using BCFtools
+
+#Load module 
+
 module load bcftools/1.20
 
 # Define input and output directories
