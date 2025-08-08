@@ -45,8 +45,8 @@ p1 <- ggplot(pca_data, aes(x = PC1, y = PC2, color = Origin)) +
                "Int-FRA" = "#F46D43"),
     labels = c("Nat-ITA" = "Native Italian", 
                "Nat-FRA" = "Native French", 
-               "Int-ITA" = "Introduced Italian", 
-               "Int-FRA" = "Introduced French")) +
+               "Int-ITA" = "Non-native Italian", 
+               "Int-FRA" = "Non-native French")) +
   labs(subtitle = "A") +
   theme_minimal() +
   theme(legend.position = "bottom", axis.title = element_text(size = 12))
@@ -63,8 +63,8 @@ p2 <- ggplot(pca_data, aes(x = PC1, y = PC3, color = Origin)) +
                "Int-FRA" = "#F46D43"),
     labels = c("Nat-ITA" = "Native Italian", 
                "Nat-FRA" = "Native French", 
-               "Int-ITA" = "Introduced Italian", 
-               "Int-FRA" = "Introduced French")) +
+               "Int-ITA" = "Non-native Italian", 
+               "Int-FRA" = "Non-native French")) +
   labs(subtitle = "B") +
   theme_minimal() +
   theme(legend.position = "none", axis.title = element_text(size = 12))
@@ -114,7 +114,7 @@ treeplot <- ggtree(tree, layout = "radial") %<+% tree_data +
                                 "Nat-FRA" = "#A50026", 
                                 "Int-ITA" = "#66BD63", 
                                 "Int-FRA" = "#F46D43"),
-                     labels = c("Introduced France", "Introduced Italy", 
+                     labels = c("Non-native France", "Non-native Italy", 
                                 "Native France", "Native Italy")) +
   theme_minimal() +
   theme(axis.text = element_blank(),
@@ -211,9 +211,9 @@ Fra_Het <- Fra_Het%>% select(-Total_Variant_Sites,-Missing_Genotypes)
 #Remove the sample CW2214 due to mixed origin 
 Fra_Het <- Fra_Het[Fra_Het$ID != "CW2214", ]
 
-# Calculate whole-genome observed heterozygosity based on the total amount of sites in the VCF per group. 
-Ita_Het$Observed_Het<- Ita_Het$Heterozygous_Count/587596657 #Total number of Italian sites 
-Fra_Het$Observed_Het<- Fra_Het$Heterozygous_Count/778409143 #Total number of French sites 
+# Calculate whole-genome observed heterozygosity based on the total amount of sites in a full homozygous pseudogenome
+Ita_Het$Observed_Het<- Ita_Het$Heterozygous_Count/1423936391 #Total number of autosomal sites 
+Fra_Het$Observed_Het<- Fra_Het$Heterozygous_Count/1423936391 #Total number of autosomal sites 
 
 # Italian 
 ggplot(Ita_Het, aes(x = Origin, y = Observed_Het , fill = Origin)) +
@@ -279,13 +279,15 @@ italian_plot <- ggplot(Ita_Het, aes(x = Origin, y = Observed_Het, fill = Origin)
   scale_fill_manual(values = c("Nat-ITA" = "#006837", 
                                "Int-ITA" = "#66BD63"),
                     labels = c("Nat-ITA" = "Native Italian", 
-                               "Int-ITA" = "Introduced Italian")) +
+                               "Int-ITA" = "Non-native Italian")) +
   scale_x_discrete(
-    labels = c("Nat-ITA" = "Native Italian", "Int-ITA" = "Introduced Italian")) +
+    labels = c("Nat-ITA" = "Native Italian", "Int-ITA" = "Non-native Italian")) +
   labs(subtitle = "A",
        x = "Origin",
        y = "Heterozygosity") +
   theme_minimal() +
+  scale_y_continuous(limits = c(0.0007, 0.0019),
+                     breaks = seq(0.0007, 0.0019, by = 0.0003)) +
   theme(plot.subtitle = element_text(size = 12),
         legend.position = "bottom")
 
@@ -295,13 +297,15 @@ french_plot <- ggplot(Fra_Het, aes(x = Origin, y = Observed_Het, fill = Origin))
   scale_fill_manual(values = c("Nat-FRA" = "#A50026", 
                                "Int-FRA" = "#F46D43"),
                     labels = c("Nat-FRA" = "Native French", 
-                               "Int-FRA" = "Introduced French")) +
+                               "Int-FRA" = "Non-native French")) +
   scale_x_discrete(
-    labels = c("Nat-FRA" = "Native French", "Int-FRA" = "Introduced French")) +
+    labels = c("Nat-FRA" = "Native French", "Int-FRA" = "Non-native French")) +
   labs(subtitle = "B",
        x = "Origin",
        y = "Heterozygosity") +
   theme_minimal() +
+  scale_y_continuous(limits = c(0.0007, 0.0019),
+                     breaks = seq(0.0007, 0.0019, by = 0.0003)) +
   theme(plot.subtitle = element_text(size = 12),
         legend.position = "bottom")
 
@@ -351,7 +355,7 @@ Ita_BCF <- Ita_BCF %>%
 
 # Count records per origin
 Ita_BCF %>%
-  count(Origin) # 1847 in Introduced pops, 73 in native pops 
+  count(Origin) # 1847 in Non-native pops, 73 in native pops 
 
 
 # French 
@@ -388,7 +392,7 @@ Fra_BCF <- Fra_BCF %>%
 
 # Count of records per origin 
 Fra_BCF %>%
-  count(Origin) # 1020 in introduced pops and 561 in native pops  
+  count(Origin) # 1020 in Non-native pops and 561 in native pops  
 
 
 # Distributions 
@@ -613,26 +617,26 @@ ggplot(Fra_BCF_Summary, aes(y = ID, x = ROH_Count, fill = Origin)) +
 Ita_FROH_box <- ggplot(Ita_BCF_Summary, aes(x = Origin, y = FROH, fill = Origin)) +
   geom_boxplot(outlier.shape = NA) + 
   scale_fill_manual(values = c("Nat-ITA" = "#006837", "Int-ITA" = "#66BD63"),
-    labels = c("Nat-ITA" = "Native Italian", "Int-ITA" = "Introduced Italian")) +
+    labels = c("Nat-ITA" = "Native Italian", "Int-ITA" = "Non-native Italian")) +
   scale_x_discrete(
-    labels = c("Nat-ITA" = "Native Italian", "Int-ITA" = "Introduced Italian")) +
+    labels = c("Nat-ITA" = "Native Italian", "Int-ITA" = "Non-native Italian")) +
   labs(subtitle = "A",
        x = "Origin",
        y = "FROH") +
   theme_minimal() +
-  theme(plot.subtitle = element_text(hjust = 0.5, size = 12),
+  theme(plot.subtitle = element_text(size = 12),
         legend.position = "none")
 
 # Barplot
 Ita_FROH_bar <- ggplot(Ita_BCF_Summary, aes(y = ID, x = ROH_Count, fill = Origin)) +
   geom_bar(stat = "identity") +
   scale_fill_manual(values = c("Nat-ITA" = "#006837", "Int-ITA" = "#66BD63"),
-    labels = c("Nat-ITA" = "Native Italian", "Int-ITA" = "Introduced Italian")) +
+    labels = c("Nat-ITA" = "Native Italian", "Int-ITA" = "Non-native Italian")) +
   labs(subtitle = "B",
        y = "Sample",
        x = "Number of ROHs") +
   theme_minimal() +
-  theme(plot.subtitle = element_text(hjust = 0.5, size = 12),
+  theme(plot.subtitle = element_text(size = 12),
         axis.text.y = element_text(size = 10),
         legend.position = "none")
 
@@ -655,15 +659,15 @@ Ita_BCF_chr1 <- Ita_BCF_chr1 %>%
 Ita_ROH_chr1 <- ggplot(Ita_BCF_chr1, aes(x = POS1, xend = POS2, y = ID, color = as.factor(Origin))) +
   geom_segment(aes(yend = ID), linewidth = 3) +  
   scale_color_manual(values = c("Nat-ITA" = "#006837", "Int-ITA" = "#66BD63"),
-    labels = c("Nat-ITA" = "Native Italian", "Int-ITA" = "Introduced Italian")) + 
+    labels = c("Nat-ITA" = "Native Italian", "Int-ITA" = "Non-native Italian")) + 
   theme_minimal() +
   labs(subtitle = "C",
-       x = "Genomic Position",
+       x = "Genomic Position on Chromosome 1",
        y = "Sample",
        color = "Origin") +
   theme(strip.text = element_text(size = 12),
         axis.text.y = element_text(size = 8),
-    plot.subtitle = element_text(hjust = 0.5, size = 12))
+    plot.subtitle = element_text(size = 12))
 
 # Combine All Panels (A+B on top row, Panel C on bottom) ---
 Ita_ALL <- Ita_FROH / Ita_ROH_chr1 +
@@ -677,26 +681,26 @@ print(Ita_ALL)
 Fra_FROH_box <- ggplot(Fra_BCF_Summary, aes(x = Origin, y = FROH, fill = Origin)) +
   geom_boxplot(outlier.shape = NA) + 
   scale_fill_manual(values = c("Nat-FRA" = "#A50026", "Int-FRA" = "#F46D43"),
-    labels = c("Nat-FRA" = "Native French", "Int-FRA" = "Introduced French")) +
+    labels = c("Nat-FRA" = "Native French", "Int-FRA" = "Non-native French")) +
   scale_x_discrete(
-    labels = c("Nat-FRA" = "Native French", "Int-FRA" = "Introduced French")) +
+    labels = c("Nat-FRA" = "Native French", "Int-FRA" = "Non-native French")) +
   labs(subtitle = "A",
        x = "Origin",
        y = "FROH") +
   theme_minimal() +
-  theme(plot.subtitle = element_text(hjust = 0.5, size = 12),
+  theme(plot.subtitle = element_text(size = 12),
     legend.position = "none")
 
 # Barplot for French samples
 Fra_FROH_bar <- ggplot(Fra_BCF_Summary, aes(y = ID, x = ROH_Count, fill = Origin)) +
   geom_bar(stat = "identity") +
   scale_fill_manual(values = c("Nat-FRA" = "#A50026", "Int-FRA" = "#F46D43"),
-    labels = c("Nat-FRA" = "Native French", "Int-FRA" = "Introduced French")) +
+    labels = c("Nat-FRA" = "Native French", "Int-FRA" = "Non-native French")) +
   labs(subtitle = "B",
        y = "Sample",
        x = "Number of ROHs") +
   theme_minimal() +
-  theme(plot.subtitle = element_text(hjust = 0.5, size = 12),
+  theme(plot.subtitle = element_text(size = 12),
     axis.text.y = element_text(size = 10),
     legend.position = "none")
 
@@ -719,15 +723,15 @@ Fra_BCF_chr1 <- Fra_BCF_chr1 %>%
 Fra_ROH_chr1 <- ggplot(Fra_BCF_chr1, aes(x = POS1, xend = POS2, y = ID, color = as.factor(Origin))) +
   geom_segment(aes(yend = ID), linewidth = 3) +  
   scale_color_manual(values = c("Nat-FRA" = "#A50026", "Int-FRA" = "#F46D43"),
-    labels = c("Nat-FRA" = "Native French", "Int-FRA" = "Introduced French")) + 
+    labels = c("Nat-FRA" = "Native French", "Int-FRA" = "Non-native French")) + 
   theme_minimal() +
   labs(subtitle = "C",
-       x = "Genomic Position",
+       x = "Genomic Position on Chromosome 1",
        y = "Sample",
        color = "Origin") +
   theme(strip.text = element_text(size = 12),
     axis.text.y = element_text(size = 8),
-    plot.subtitle = element_text(hjust = 0.5, size = 12))
+    plot.subtitle = element_text(size = 12))
 
 # Combine All Panels (Panels A+B on top, Panel C on bottom)
 Fra_ALL <- Fra_FROH / Fra_ROH_chr1 +
