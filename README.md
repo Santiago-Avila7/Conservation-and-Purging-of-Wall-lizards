@@ -33,6 +33,11 @@ This directory includes the pipeline, starting from raw reads to the analysis of
     * **11. Annotation of variants** based on predicted impact.
     * **12. Relative frequencies calculation** for derived allele ratios and block jackknifing.
 
+--- Under developement ---
+* **SNPs Polarisation:**
+    * **13. uSFS preparation** Creates the VCF and nucleotides counts needed.
+    * **14. uSFS and polarisation** Runs est-sfs and produced a polarised VCF with only sites in which the ancestral state is the Ref allele. 
+
 ### R Scripts
 
 This directory includes:
